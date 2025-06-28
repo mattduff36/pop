@@ -210,7 +210,7 @@ export default function Game() {
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
         <div className="relative w-40 h-56 transform hover:scale-105 transition-transform">
           <div className="relative w-full h-full rounded-lg bg-blue-800 border-2 border-blue-500 flex items-center justify-center shadow-2xl">
-            <img src="/cards/SVG-cards/red_joker.svg" alt="Card Back" className="w-full h-full rounded-lg" />
+            <img src="/cards/SVG-cards/card_back.svg" alt="Card Back" className="w-full h-full rounded-lg" />
             <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-3 py-1 text-sm font-bold border-2 border-blue-400">{deck.length}</span>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function Game() {
               className="w-full h-full"
             />
           ) : (
-             <img src="/cards/SVG-cards/red_joker.svg" alt="Card Back" className="w-full h-full rounded-lg" />
+             <img src="/cards/SVG-cards/card_back.svg" alt="Card Back" className="w-full h-full rounded-lg" />
           )}
         </div>
       </section>
