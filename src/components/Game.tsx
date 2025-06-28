@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, Player } from "@/lib/types";
 import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
+import { getCardImageSrc } from "@/lib/utils";
 
 type GameState =
   | "SETUP"
@@ -25,17 +26,14 @@ export default function Game() {
   const handleGameStart = (players: Player[]) => {
     setPlayers(players);
     const newDeck = createDeck();
-    const shuffled = shuffleDeck(newDeck);
-    const firstCard = shuffled.pop()!;
-
-    setCurrentCard(firstCard);
-    setDeck(shuffled);
+    setDeck(shuffleDeck(newDeck));
+    setCurrentCard(null);
     
     const startingPlayer = Math.floor(Math.random() * players.length);
     setCurrentPlayerIndex(startingPlayer);
 
     setGameState("AWAITING_COLOR_GUESS");
-    setMessage(`Player ${players[startingPlayer].name}, is the next card Red or Black?`);
+    setMessage(`${players[startingPlayer].name}, is the next card Red or Black?`);
   };
 
   const drawCard = () => {
@@ -67,6 +65,12 @@ export default function Game() {
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. Keep it or change?`);
     } else {
+      if (currentCard) {
+        setDiscardPile(prev => [...prev, currentCard, nextCard]);
+      } else {
+        setDiscardPile(prev => [...prev, nextCard]);
+      }
+      setCurrentCard(null);
       handleIncorrectGuess(`Incorrect! The card was ${nextCard.rank} of ${nextCard.suit}.`);
     }
   };
@@ -107,16 +111,9 @@ export default function Game() {
     const nextPlayerIndex = advanceToNextPlayer();
     setCurrentPlayerIndex(nextPlayerIndex);
 
-    const newDeck = createDeck();
-    const shuffled = shuffleDeck(newDeck);
-    const firstCard = shuffled.pop()!;
-    setCurrentCard(firstCard);
-    setDeck(shuffled);
-    setDiscardPile([]);
-
     setGameState("AWAITING_COLOR_GUESS");
     setTimeout(() => {
-        setMessage(`Player ${newPlayers[nextPlayerIndex].name}, your turn. Red or Black?`);
+        setMessage(`${newPlayers[nextPlayerIndex].name}, your turn. Red or Black?`);
     }, 2000);
   }
 
@@ -213,24 +210,19 @@ export default function Game() {
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
         <div className="relative w-40 h-56 transform hover:scale-105 transition-transform">
           <div className="relative w-full h-full rounded-lg bg-blue-800 border-2 border-blue-500 flex items-center justify-center shadow-2xl">
-            <span className="text-5xl font-bold text-blue-200">POP</span>
+            <img src="/cards/SVG-cards/red_joker.svg" alt="Card Back" className="w-full h-full rounded-lg" />
             <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-3 py-1 text-sm font-bold border-2 border-blue-400">{deck.length}</span>
           </div>
         </div>
         <div className="relative w-40 h-56 transform hover:scale-105 transition-transform">
           {currentCard ? (
-            <div className="relative w-full h-full rounded-lg bg-white border-4 border-gray-300 flex flex-col items-center justify-center shadow-2xl p-2">
-              <span className={`text-7xl font-bold ${
-                  currentCard.suit === "Hearts" || currentCard.suit === "Diamonds"
-                    ? "text-red-600"
-                    : "text-black"
-                }`}
-              >
-                {currentCard.rank.length > 2 ? currentCard.rank.charAt(0) : currentCard.rank}
-              </span>
-            </div>
+            <img 
+              src={getCardImageSrc(currentCard)} 
+              alt={`${currentCard.rank} of ${currentCard.suit}`}
+              className="w-full h-full"
+            />
           ) : (
-             <div className="relative w-full h-full rounded-lg bg-gray-500 border-4 border-gray-400 flex items-center justify-center shadow-inner"></div>
+             <img src="/cards/SVG-cards/red_joker.svg" alt="Card Back" className="w-full h-full rounded-lg" />
           )}
         </div>
       </section>
