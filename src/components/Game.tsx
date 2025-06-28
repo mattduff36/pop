@@ -22,6 +22,27 @@ export default function Game() {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [gameState, setGameState] = useState<GameState>("SETUP");
   const [message, setMessage] = useState("Welcome to POP! Setup the game to start.");
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // PWA Install Prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+        .catch(error => console.error('Service Worker registration failed:', error));
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const handleGameStart = (players: Player[]) => {
     setPlayers(players);
@@ -34,6 +55,12 @@ export default function Game() {
 
     setGameState("AWAITING_COLOR_GUESS");
     setMessage(`${players[startingPlayer].name}, is the next card Red or Black?`);
+  };
+
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+    }
   };
 
   const drawCard = () => {
@@ -185,36 +212,48 @@ export default function Game() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans">
-      <header className="w-full text-center mb-8">
-        <h1 className="text-5xl font-bold text-yellow-400 tracking-wider">POP: Play Or Pass</h1>
-        <p className="text-gray-300 mt-2 text-lg h-8">{message}</p>
+      <header className="w-full text-center mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-yellow-400 tracking-wider">POP: Play Or Pass</h1>
+        <p className="text-gray-300 mt-2 text-lg h-8 px-2">{message}</p>
       </header>
 
-      <section className="w-full flex justify-center gap-8 mb-8">
+      {installPrompt && (
+        <button 
+          onClick={handleInstallClick}
+          className="fixed bottom-4 right-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-5 rounded-full shadow-lg z-50"
+          title="Install App"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+      )}
+
+      <section className="w-full flex flex-row flex-wrap items-center justify-center gap-2 mb-4">
         {players.map((player, index) => (
           <div
             key={player.id}
-            className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+            className={`p-2 rounded-lg border-2 transition-all duration-300 ${
               currentPlayerIndex === index
-                ? "border-yellow-400 bg-yellow-900 shadow-lg shadow-yellow-400/20"
+                ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
                 : "border-gray-600 bg-gray-800"
             }`}
           >
-            <h2 className="text-xl font-semibold">{player.name}</h2>
-            <p className="text-2xl mt-2">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀 Out of Game"}</p>
+            <h2 className="text-sm font-semibold truncate">{player.name}</h2>
+            <p className="text-lg mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
           </div>
         ))}
       </section>
 
-      <section className="relative flex items-center justify-center gap-8 h-64 w-full">
+      <section className="relative flex items-center justify-center gap-4 md:gap-8 h-56 md:h-72 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
-        <div className="relative w-40 h-56 transform hover:scale-105 transition-transform">
+        <div className="relative w-36 h-52 md:w-48 md:h-64 transform hover:scale-105 transition-transform">
           <div className="relative w-full h-full rounded-lg bg-blue-800 border-2 border-blue-500 flex items-center justify-center shadow-2xl">
-            <img src="/cards/SVG-cards/card_back.svg" alt="Card Back" className="w-full h-full rounded-lg" />
-            <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-3 py-1 text-sm font-bold border-2 border-blue-400">{deck.length}</span>
+            <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
+            <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-2 py-0.5 text-xs md:text-sm font-bold border-2 border-blue-400">{deck.length}</span>
           </div>
         </div>
-        <div className="relative w-40 h-56 transform hover:scale-105 transition-transform">
+        <div className="relative w-36 h-52 md:w-48 md:h-64 transform hover:scale-105 transition-transform">
           {currentCard ? (
             <img 
               src={getCardImageSrc(currentCard)} 
@@ -222,39 +261,39 @@ export default function Game() {
               className="w-full h-full"
             />
           ) : (
-             <img src="/cards/SVG-cards/card_back.svg" alt="Card Back" className="w-full h-full rounded-lg" />
+             <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
           )}
         </div>
       </section>
 
       <section className="mt-8 h-16 flex items-center justify-center">
-        <div className="flex gap-4">
+        <div className="flex gap-2 md:gap-4">
             {gameState === "AWAITING_COLOR_GUESS" && (
                 <>
-                    <button onClick={() => handleColorGuess("Red")} className="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Red</button>
-                    <button onClick={() => handleColorGuess("Black")} className="px-8 py-4 bg-gray-800 hover:bg-gray-700 border-2 border-white rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Black</button>
+                    <button onClick={() => handleColorGuess("Red")} className="px-6 py-3 md:px-8 md:py-4 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Red</button>
+                    <button onClick={() => handleColorGuess("Black")} className="px-6 py-3 md:px-8 md:py-4 bg-gray-800 hover:bg-gray-700 border-2 border-white rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Black</button>
                 </>
             )}
             {gameState === "AWAITING_KEEP_OR_CHANGE" && (
                 <>
-                    <button onClick={handleKeepCard} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Keep Card</button>
-                    <button onClick={handleChangeCard} className="px-8 py-4 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Change Card</button>
+                    <button onClick={handleKeepCard} className="px-6 py-3 md:px-8 md:py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Keep Card</button>
+                    <button onClick={handleChangeCard} className="px-6 py-3 md:px-8 md:py-4 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Change Card</button>
                 </>
             )}
             {gameState === "AWAITING_HIGHER_LOWER" && (
                 <>
-                    <button onClick={() => handleHigherLowerGuess('Higher')} className="px-8 py-4 bg-green-500 hover:bg-green-600 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Higher</button>
-                    <button onClick={() => handleHigherLowerGuess('Lower')} className="px-8 py-4 bg-red-500 hover:bg-red-600 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Lower</button>
+                    <button onClick={() => handleHigherLowerGuess('Higher')} className="px-6 py-3 md:px-8 md:py-4 bg-green-500 hover:bg-green-600 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Higher</button>
+                    <button onClick={() => handleHigherLowerGuess('Lower')} className="px-6 py-3 md:px-8 md:py-4 bg-red-500 hover:bg-red-600 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Lower</button>
                 </>
             )}
             {gameState === "PLAY_OR_PASS" && (
                 <>
-                    <button onClick={handlePlay} className="px-8 py-4 bg-teal-500 hover:bg-teal-600 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Play</button>
-                    <button onClick={handlePass} className="px-8 py-4 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Pass</button>
+                    <button onClick={handlePlay} className="px-6 py-3 md:px-8 md:py-4 bg-teal-500 hover:bg-teal-600 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Play</button>
+                    <button onClick={handlePass} className="px-6 py-3 md:px-8 md:py-4 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Pass</button>
                 </>
             )}
             {gameState === "GAME_OVER" && (
-                <button onClick={handlePlayAgain} className="px-8 py-4 bg-green-500 hover:bg-green-600 rounded-lg font-bold text-xl transition-transform transform hover:scale-110">Play Again?</button>
+                <button onClick={handlePlayAgain} className="px-6 py-3 md:px-8 md:py-4 bg-green-500 hover:bg-green-600 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-110">Play Again?</button>
             )}
         </div>
       </section>

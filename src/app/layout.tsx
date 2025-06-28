@@ -7,6 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "POP - Play Or Pass",
   description: "A card game by mattduff36",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

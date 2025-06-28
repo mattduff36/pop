@@ -33,19 +33,19 @@ export default function GameSetup({ onGameStart }: GameSetupProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-5xl font-bold text-yellow-400 mb-8">Game Setup</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4 md:p-8">
+      <h1 className="text-4xl md:text-5xl font-bold text-yellow-400 mb-8 text-center">Game Setup</h1>
       
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
+      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg w-full max-w-sm md:max-w-md">
         <div className="mb-6">
-          <label htmlFor="numPlayers" className="block text-lg font-medium text-gray-300 mb-2">
+          <label htmlFor="numPlayers" className="block text-base md:text-lg font-medium text-gray-300 mb-2">
             Number of Players
           </label>
           <select
             id="numPlayers"
             value={numPlayers}
             onChange={handleNumPlayersChange}
-            className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
           >
             {[2, 3, 4, 5, 6].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -54,15 +54,15 @@ export default function GameSetup({ onGameStart }: GameSetupProps) {
         </div>
 
         <div className="mb-6">
-            <h2 className="block text-lg font-medium text-gray-300 mb-2">Player Names</h2>
-            <div className="space-y-4">
+            <h2 className="block text-base md:text-lg font-medium text-gray-300 mb-2">Player Names</h2>
+            <div className="space-y-3 md:space-y-4">
                 {playerNames.map((name, index) => (
                     <input
                         key={index}
                         type="text"
                         value={name}
                         onChange={(e) => handleNameChange(index, e.target.value)}
-                        className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
                     />
                 ))}
             </div>
@@ -70,7 +70,7 @@ export default function GameSetup({ onGameStart }: GameSetupProps) {
 
         <button
           onClick={handleStartGame}
-          className="w-full py-4 bg-green-600 hover:bg-green-700 rounded-lg font-bold text-xl transition-transform transform hover:scale-105"
+          className="w-full py-3 md:py-4 bg-green-600 hover:bg-green-700 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-105"
         >
           Start Game
         </button>
