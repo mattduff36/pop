@@ -6,6 +6,7 @@ import { Card, Player } from "@/lib/types";
 import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import { getCardImageSrc } from "@/lib/utils";
+import useSound from "@/hooks/useSound";
 
 type GameState =
   | "SETUP"
@@ -32,9 +33,15 @@ export default function Game() {
   const [failureReason, setFailureReason] = useState<'INCORRECT_GUESS' | 'SAME_VALUE_TIE' | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const playButtonSound = useSound('/sounds/button-click.mp3', 0.5, isMuted);
+  const playCardFlipSound = useSound('/sounds/card-flip.mp3', 0.5, isMuted);
+  const playCorrectSound = useSound('/sounds/correct-guess.mp3', 0.5, isMuted);
+  const playIncorrectSound = useSound('/sounds/incorrect-guess.mp3', 0.5, isMuted);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
@@ -131,10 +138,12 @@ export default function Game() {
   const handleInstallClick = () => {
     if (installPrompt) {
       installPrompt.prompt();
+      playButtonSound();
     }
   };
 
   const drawCard = () => {
+    playCardFlipSound();
     if (deck.length > 0) {
       const newDeck = [...deck];
       const card = newDeck.pop()!;
@@ -151,6 +160,7 @@ export default function Game() {
   };
 
   const handleColourGuess = (guess: "Red" | "Black") => {
+    playButtonSound();
     const nextCard = drawCard();
     if (!nextCard) return;
 
@@ -161,9 +171,11 @@ export default function Game() {
     setCurrentCard(nextCard);
 
     if (isGuessCorrect) {
+      playCorrectSound();
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
     } else {
+      playIncorrectSound();
       setTurnOwnerIndex(currentPlayerIndex);
       const nextPlayerIndex = advanceToNextPlayer();
       setCurrentPlayerIndex(nextPlayerIndex);
@@ -193,6 +205,7 @@ export default function Game() {
   }
 
   const handleKeepCard = () => {
+    playButtonSound();
     setGameState("AWAITING_HIGHER_LOWER");
     if (turnOwnerIndex !== null) {
       setCurrentPlayerIndex(turnOwnerIndex);
@@ -204,6 +217,7 @@ export default function Game() {
   }
 
   const handleChangeCard = () => {
+    playButtonSound();
     const newCard = drawCard();
     if (!newCard) return;
 
@@ -221,6 +235,7 @@ export default function Game() {
   }
 
   const handleHigherLowerGuess = (guess: 'Higher' | 'Lower') => {
+    playButtonSound();
     const previousCard = currentCard;
     if (!previousCard) return;
 
@@ -247,40 +262,56 @@ export default function Game() {
           setFailureReason('INCORRECT_GUESS');
         }
     }
-
-    setDiscardPile(prev => [...prev, previousCard]);
-    setCurrentCard(newCard);
+    
     setMessage(reason);
-
+    if(previousCard) setDiscardPile(prev => [...prev, previousCard]);
+    setCurrentCard(newCard);
+    
     if (correct) {
-        setTitleFeedback('correct');
-        setGameState("PLAY_OR_PASS");
+      playCorrectSound();
+      setTitleFeedback('correct');
+      setGameState("PLAY_OR_PASS");
     } else {
-        setTitleFeedback('incorrect');
-        setGameState("SHOWING_RESULT");
+      playIncorrectSound();
+      setTitleFeedback('incorrect');
+      setGameState("SHOWING_RESULT");
     }
-  }
+  };
 
   const handlePlay = () => {
+    playButtonSound();
     setGameState("AWAITING_HIGHER_LOWER");
-    setMessage(`Next card is on the ${currentCard?.rank}. Higher or Lower?`);
+    setMessage(`Card is ${currentCard?.rank}. Higher or Lower?`);
   };
 
   const handlePass = () => {
+    playButtonSound();
     const nextPlayerIndex = advanceToNextPlayer();
     setCurrentPlayerIndex(nextPlayerIndex);
     setGameState("AWAITING_HIGHER_LOWER");
-    setMessage(`Turn passed to ${players[nextPlayerIndex].name}. Higher or lower than ${currentCard?.rank}?`);
+    setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
+  };
+
+  const handleToggleMute = () => {
+    setIsMuted(prev => !prev);
   };
 
   const handlePlayAgain = () => {
+    playButtonSound();
+    setIsLoading(true);
+    setGameStarted(false);
     setGameState("SETUP");
     setMessage("Welcome to POP! Setup the game to start.");
-    setCurrentCard(null);
+    setPlayers([]);
+    setDeck([]);
     setDiscardPile([]);
-    setGameStarted(false);
+    setCurrentCard(null);
+    setCurrentPlayerIndex(0);
     setTurnOwnerIndex(null);
-  }
+    setTitleFeedback('idle');
+    setFailureReason(null);
+    setTimeout(() => setIsLoading(false), 500);
+  };
 
   if (isLoading) {
     return (
@@ -644,13 +675,36 @@ export default function Game() {
                     <h2 className="text-2xl font-bold mb-6 text-yellow-400 font-cinzel">Settings</h2>
                     <div className="flex flex-col items-center gap-4">
                       <button
-                        onClick={() => setShowRules(true)}
+                        onClick={() => {
+                          playButtonSound();
+                          setShowRules(true);
+                        }}
                         className="w-48 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
                       >
                         How to Play
                       </button>
                       <button
                         onClick={() => {
+                          handleToggleMute();
+                          playButtonSound();
+                        }}
+                        className="w-48 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                      >
+                        {isMuted ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l-5-5m0 5l5-5" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          </svg>
+                        )}
+                        <span>{isMuted ? 'Unmute' : 'Mute'}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          playButtonSound();
                           handlePlayAgain();
                           setIsSettingsOpen(false);
                           setShowRules(false);
