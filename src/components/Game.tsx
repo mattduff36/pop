@@ -290,13 +290,13 @@ export default function Game() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
               transition={{ duration: 0.3 }}
-              className={`p-2 rounded-lg border-2 transition-all duration-300 ${
+              className={`p-2 rounded-lg border-2 transition-all duration-300 text-center ${
                 currentPlayerIndex === index
                   ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
                   : "border-gray-600 bg-gray-800"
               }`}
             >
-              <h2 className="text-sm font-semibold truncate">{player.name}</h2>
+              <h2 className="text-sm font-semibold">{player.name}</h2>
               <p className="text-base mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
             </motion.div>
           ))}
@@ -305,7 +305,7 @@ export default function Game() {
 
       <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
-        <div className="relative w-44 h-64 md:w-60 md:h-80 transform hover:scale-105 transition-transform">
+        <div className="relative w-44 h-64 md:w-60 md:h-80">
           <div className="relative w-full h-full rounded-lg bg-blue-800 border-2 border-blue-500 flex items-center justify-center shadow-2xl">
             <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
             <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-2 py-0.5 text-xs md:text-sm font-bold border-2 border-blue-400">{deck.length}</span>
@@ -337,66 +337,86 @@ export default function Game() {
       </section>
 
       <section className="flex-grow flex items-center justify-center w-full">
-        <AnimatePresence mode="wait">
-          <div className="flex flex-col items-center justify-center gap-4">
-            {gameState === "AWAITING_COLOR_GUESS" && (
-              <motion.div 
-                key="color-guess"
-                className="flex gap-4 mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <button onClick={() => handleColorGuess('Red')} className="w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Red</button>
-                <button onClick={() => handleColorGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
-              </motion.div>
-            )}
-            {gameState === "AWAITING_KEEP_OR_CHANGE" && (
-              <motion.div 
-                key="keep-change"
-                className="flex gap-4 mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <button 
-                  onClick={handleKeepCard} 
-                  className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+        <div className="flex flex-col items-center justify-center gap-4">
+
+          {/* --- Row 1: Color Guess / Keep Change --- */}
+          <div className="h-16 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {gameState === "AWAITING_COLOR_GUESS" && (
+                <motion.div 
+                  key="color-guess"
+                  className="flex gap-4"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  Keep
-                </button>
-                <button 
-                  onClick={handleChangeCard} 
-                  className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                  <button onClick={() => handleColorGuess('Red')} className="w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Red</button>
+                  <button onClick={() => handleColorGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
+                </motion.div>
+              )}
+
+              {gameState === "AWAITING_KEEP_OR_CHANGE" && (
+                <motion.div 
+                  key="keep-change"
+                  className="flex gap-4"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  Change
-                </button>
-              </motion.div>
-            )}
-            {gameState === "AWAITING_HIGHER_LOWER" && (
-              <motion.div 
-                key="higher-lower"
-                className="flex gap-4 mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <button onClick={() => handleHigherLowerGuess('Higher')} className="w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Higher</button>
-                <button onClick={() => handleHigherLowerGuess('Lower')} className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Lower</button>
-              </motion.div>
-            )}
-            {gameState === "PLAY_OR_PASS" && (
-              <motion.div 
-                key="play-pass"
-                className="flex gap-4 mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <button onClick={handlePlay} className="w-32 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Play</button>
-                <button onClick={handlePass} className="w-32 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Pass</button>
-              </motion.div>
-            )}
+                  <button 
+                    onClick={handleKeepCard} 
+                    className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                  >
+                    Keep
+                  </button>
+                  <button 
+                    onClick={handleChangeCard} 
+                    className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                  >
+                    Change
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* --- Row 2: Higher Lower --- */}
+          <div className="flex gap-4">
+            <button 
+              onClick={() => handleHigherLowerGuess('Higher')} 
+              className="w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
+            >
+              Higher
+            </button>
+            <button 
+              onClick={() => handleHigherLowerGuess('Lower')} 
+              className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
+            >
+              Lower
+            </button>
+          </div>
+
+          {/* --- Row 3: Play Pass --- */}
+          <div className="flex gap-4 items-center">
+            <button 
+              onClick={handlePlay} 
+              className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              disabled={gameState !== "PLAY_OR_PASS"}
+            >
+              Play
+            </button>
+            <button 
+              onClick={handlePass} 
+              className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              disabled={gameState !== "PLAY_OR_PASS"}
+            >
+              Pass
+            </button>
+          </div>
+
+          <AnimatePresence>
             {gameState === "GAME_OVER" && (
               <motion.div 
                 key="game-over"
@@ -407,8 +427,8 @@ export default function Game() {
                 <button onClick={handlePlayAgain} className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Play Again</button>
               </motion.div>
             )}
-          </div>
-        </AnimatePresence>
+          </AnimatePresence>
+        </div>
       </section>
 
       <footer className="w-full text-center mt-auto pt-4">
