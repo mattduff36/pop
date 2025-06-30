@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Player } from "@/lib/types";
 import { createDeck, shuffleDeck } from "@/lib/game";
@@ -29,6 +29,10 @@ export default function Game() {
   const [message, setMessage] = useState("Welcome to POP! Setup the game to start.");
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [titleFeedback, setTitleFeedback] = useState<'correct' | 'incorrect' | 'idle'>('idle');
+  const [failureReason, setFailureReason] = useState<'INCORRECT_GUESS' | 'SAME_VALUE_TIE' | null>(null);
+
+  const playerScrollContainerRef = useRef<HTMLDivElement>(null);
+  const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
@@ -58,13 +62,30 @@ export default function Game() {
   useEffect(() => {
     if (gameState === 'SHOWING_RESULT') {
         const timeoutId = setTimeout(() => {
-            loseLifeAndAdvanceTurn();
+            processTurnEnd();
         }, 2500); 
         return () => clearTimeout(timeoutId);
     }
-  }, [gameState, players, currentPlayerIndex]);
+  }, [gameState]);
 
-  const loseLifeAndAdvanceTurn = () => {
+  useEffect(() => {
+    // Ensure player refs are created
+    playerRefs.current = playerRefs.current.slice(0, players.length);
+  }, [players]);
+
+  useEffect(() => {
+    if (playerScrollContainerRef.current && playerRefs.current[currentPlayerIndex]) {
+      playerRefs.current[currentPlayerIndex]!.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [currentPlayerIndex, players]);
+
+  const processTurnEnd = () => {
+    if (!failureReason) return;
+
     const newPlayers = [...players];
     const playerWhoGuessed = newPlayers[currentPlayerIndex];
     playerWhoGuessed.lives--;
@@ -72,15 +93,23 @@ export default function Game() {
 
     if (checkForWinner()) return;
 
-    const messagePrefix = playerWhoGuessed.lives <= 0 
+    const lostLastLife = playerWhoGuessed.lives <= 0;
+    const shouldAdvance = failureReason === 'SAME_VALUE_TIE' || lostLastLife;
+
+    let messagePrefix = lostLastLife 
         ? `${playerWhoGuessed.name} is out of lives!`
         : `${playerWhoGuessed.name} loses a life.`;
 
-    const nextPlayerIndex = advanceToNextPlayer();
-    setCurrentPlayerIndex(nextPlayerIndex);
+    if (shouldAdvance) {
+      const nextPlayerIndex = advanceToNextPlayer();
+      setCurrentPlayerIndex(nextPlayerIndex);
+      setMessage(`${messagePrefix} It's now ${newPlayers[nextPlayerIndex].name}'s turn. Red or Black?`);
+    } else {
+      setMessage(`${messagePrefix} It's your turn again. Red or Black?`);
+    }
     
     setGameState("AWAITING_COLOR_GUESS");
-    setMessage(`${messagePrefix} It's now ${newPlayers[nextPlayerIndex].name}'s turn. Red or Black?`);
+    setFailureReason(null);
   };
 
   const handleGameStart = (players: Player[]) => {
@@ -202,6 +231,7 @@ export default function Game() {
     if (newCard.value === previousCard.value) {
         correct = false;
         reason = `Same card value! It's the ${newCard.rank} of ${newCard.suit}.`;
+        setFailureReason('SAME_VALUE_TIE');
     } else {
         if (guess === 'Higher') {
             correct = newCard.value > previousCard.value;
@@ -211,6 +241,9 @@ export default function Game() {
         reason = correct 
             ? `Correct! It's the ${newCard.rank} of ${newCard.suit}. Play again or Pass?` 
             : `Incorrect! It was the ${newCard.rank} of ${newCard.suit}.`;
+        if (!correct) {
+          setFailureReason('INCORRECT_GUESS');
+        }
     }
 
     setDiscardPile(prev => [...prev, previousCard]);
@@ -311,28 +344,50 @@ export default function Game() {
         </button>
       )}
 
-      <section className="w-full flex flex-row flex-wrap items-center justify-center gap-2 mb-4">
-        <AnimatePresence>
-          {players.map((player, index) => (
-            <motion.div
-              key={player.id}
-              layout
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.3 }}
-              className={`p-2 rounded-lg border-2 transition-all duration-300 text-center ${
-                currentPlayerIndex === index
-                  ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
-                  : "border-gray-600 bg-gray-800"
-              }`}
-            >
-              <h2 className="text-sm font-semibold">{player.name}</h2>
-              <p className="text-base mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </section>
+      <div className="relative w-full">
+        <section
+          ref={playerScrollContainerRef}
+          className="w-full flex items-center gap-4 mb-4 overflow-x-auto py-2"
+          style={{ 
+            paddingLeft: 'calc(50% - 4rem)', /* 4rem is half of w-32 */
+            paddingRight: 'calc(50% - 4rem)',
+            scrollbarWidth: 'none' 
+          }}
+        >
+          <AnimatePresence>
+            {players.map((player, index) => (
+              <motion.div
+                ref={el => { playerRefs.current[index] = el; }}
+                key={player.id}
+                layout
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ duration: 0.3 }}
+                className={`p-3 rounded-lg border-2 transition-all duration-300 text-center flex-shrink-0 w-32 ${
+                  currentPlayerIndex === index
+                    ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
+                    : "border-gray-600 bg-gray-800"
+                }`}
+              >
+                <h2 className="text-sm font-semibold truncate">{player.name}</h2>
+                <p className="text-base mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </section>
+
+        {/* Left Fade */}
+        <div className="absolute top-0 left-0 bottom-0 w-24 bg-gradient-to-r from-gray-900 to-transparent pointer-events-none"></div>
+        {/* Right Fade */}
+        <div className="absolute top-0 right-0 bottom-0 w-24 bg-gradient-to-l from-gray-900 to-transparent pointer-events-none"></div>
+      </div>
+
+      <style jsx global>{`
+        section::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
       <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
