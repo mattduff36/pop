@@ -28,6 +28,7 @@ export default function Game() {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("Welcome to POP! Setup the game to start.");
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [titleFeedback, setTitleFeedback] = useState<'correct' | 'incorrect' | 'idle'>('idle');
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
@@ -217,8 +218,10 @@ export default function Game() {
     setMessage(reason);
 
     if (correct) {
+        setTitleFeedback('correct');
         setGameState("PLAY_OR_PASS");
     } else {
+        setTitleFeedback('incorrect');
         setGameState("SHOWING_RESULT");
     }
   }
@@ -249,7 +252,7 @@ export default function Game() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900">
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
         >
           <h1 className="font-cinzel text-5xl font-bold text-yellow-400">POP</h1>
         </motion.div>
@@ -261,10 +264,38 @@ export default function Game() {
     return <GameSetup onGameStart={handleGameStart} />;
   }
 
+  const titleVariants = {
+    idle: {
+      color: "#facc15", // tailwind yellow-400
+    },
+    correct: {
+      scale: [1, 1.1, 1],
+      color: ["#facc15", "#4ade80", "#facc15"], // yellow-400, green-400, yellow-400
+      transition: {
+        duration: 2,
+        times: [0, 0.5, 1]
+      }
+    },
+    incorrect: {
+      x: [0, -10, 10, -10, 10, 0],
+      color: ["#facc15", "#ef4444", "#facc15"], // yellow-400, red-500, yellow-400
+      transition: {
+        duration: 0.4
+      }
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans">
+    <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
       <header className="w-full text-center mb-8">
-        <h1 className="font-cinzel text-4xl md:text-6xl font-bold text-yellow-400 tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)]">PLAY or PASS?</h1>
+        <motion.h1 
+          className="font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)]"
+          variants={titleVariants}
+          animate={titleFeedback}
+          onAnimationComplete={() => setTitleFeedback('idle')}
+        >
+          PLAY or PASS?
+        </motion.h1>
         <p className="text-gray-300 mt-4 text-lg h-8 px-2">{message}</p>
       </header>
 
