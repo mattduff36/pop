@@ -13,6 +13,7 @@ type GameState =
   | "AWAITING_KEEP_OR_CHANGE"
   | "AWAITING_HIGHER_LOWER"
   | "PLAY_OR_PASS"
+  | "SHOWING_RESULT"
   | "GAME_OVER";
 
 export default function Game() {
@@ -53,6 +54,34 @@ export default function Game() {
     };
   }, []);
 
+  useEffect(() => {
+    if (gameState === 'SHOWING_RESULT') {
+        const timeoutId = setTimeout(() => {
+            loseLifeAndAdvanceTurn();
+        }, 2500); 
+        return () => clearTimeout(timeoutId);
+    }
+  }, [gameState, players, currentPlayerIndex]);
+
+  const loseLifeAndAdvanceTurn = () => {
+    const newPlayers = [...players];
+    const playerWhoGuessed = newPlayers[currentPlayerIndex];
+    playerWhoGuessed.lives--;
+    setPlayers(newPlayers);
+
+    if (checkForWinner()) return;
+
+    const messagePrefix = playerWhoGuessed.lives <= 0 
+        ? `${playerWhoGuessed.name} is out of lives!`
+        : `${playerWhoGuessed.name} loses a life.`;
+
+    const nextPlayerIndex = advanceToNextPlayer();
+    setCurrentPlayerIndex(nextPlayerIndex);
+    
+    setGameState("AWAITING_COLOR_GUESS");
+    setMessage(`${messagePrefix} It's now ${newPlayers[nextPlayerIndex].name}'s turn. Red or Black?`);
+  };
+
   const handleGameStart = (players: Player[]) => {
     setPlayers(players);
     const newDeck = createDeck();
@@ -62,14 +91,10 @@ export default function Game() {
     const startingPlayer = Math.floor(Math.random() * players.length);
     setCurrentPlayerIndex(startingPlayer);
 
-    setGameState("AWAITING_COLOR_GUESS");
-    setMessage(`Game is ready. Click the pile on the right to begin.`);
-  };
-
-  const handleBeginClick = () => {
     setGameStarted(true);
-    setMessage(`${players[currentPlayerIndex].name}, is the next card Red or Black?`);
-  }
+    setGameState("AWAITING_COLOR_GUESS");
+    setMessage(`${players[startingPlayer].name}, is the first card Red or Black?`);
+  };
 
   const handleInstallClick = () => {
     if (installPrompt) {
@@ -100,23 +125,19 @@ export default function Game() {
     const isRed = nextCard.suit === "Hearts" || nextCard.suit === "Diamonds";
     const isGuessCorrect = (guess === "Red" && isRed) || (guess === "Black" && !isRed);
     
+    if(currentCard) setDiscardPile(prev => [...prev, currentCard]);
+    setCurrentCard(nextCard);
+
     if (isGuessCorrect) {
-      if(currentCard) setDiscardPile(prev => [...prev, currentCard]);
-      setCurrentCard(nextCard);
       setGameState("AWAITING_KEEP_OR_CHANGE");
-      setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. Keep it or change?`);
+      setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
     } else {
-      if (currentCard) {
-        setDiscardPile(prev => [...prev, currentCard]);
-      }
-      setCurrentCard(nextCard);
       setTurnOwnerIndex(currentPlayerIndex);
-      
       const nextPlayerIndex = advanceToNextPlayer();
       setCurrentPlayerIndex(nextPlayerIndex);
-
+      
       setGameState("AWAITING_KEEP_OR_CHANGE");
-      setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, keep or change?`);
+      setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, you decide: keep or change?`);
     }
   };
 
@@ -139,34 +160,11 @@ export default function Game() {
     return false;
   }
 
-  const handleIncorrectGuess = (customMessage: string) => {
-    const newPlayers = [...players];
-    const currentPlayer = newPlayers[currentPlayerIndex];
-    currentPlayer.lives--;
-    setPlayers(newPlayers);
-
-    if (checkForWinner()) return;
-
-    if (currentPlayer.lives <= 0) {
-        setMessage(`${customMessage} ${currentPlayer.name} is out of lives!`);
-    } else {
-        setMessage(`${customMessage} ${currentPlayer.name} loses a life.`);
-    }
-    
-    const nextPlayerIndex = advanceToNextPlayer();
-    setCurrentPlayerIndex(nextPlayerIndex);
-
-    setGameState("AWAITING_COLOR_GUESS");
-    setTimeout(() => {
-        setMessage(`${newPlayers[nextPlayerIndex].name}, your turn. Red or Black?`);
-    }, 2000);
-  }
-
   const handleKeepCard = () => {
     setGameState("AWAITING_HIGHER_LOWER");
     if (turnOwnerIndex !== null) {
       setCurrentPlayerIndex(turnOwnerIndex);
-      setMessage(`Card is ${currentCard?.rank}. ${players[turnOwnerIndex].name}, Higher or Lower?`);
+      setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
       setTurnOwnerIndex(null);
     } else {
       setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. Higher or Lower?`);
@@ -183,7 +181,7 @@ export default function Game() {
 
     if (turnOwnerIndex !== null) {
       setCurrentPlayerIndex(turnOwnerIndex);
-      setMessage(`New card is ${newCard.rank} of ${newCard.suit}. ${players[turnOwnerIndex].name}, Higher or Lower?`);
+      setMessage(`New card is ${newCard.rank} of ${newCard.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
       setTurnOwnerIndex(null);
     } else {
       setMessage(`New card is ${newCard.rank} of ${newCard.suit}. Higher or Lower?`);
@@ -191,30 +189,37 @@ export default function Game() {
   }
 
   const handleHigherLowerGuess = (guess: 'Higher' | 'Lower') => {
+    const previousCard = currentCard;
+    if (!previousCard) return;
+
     const newCard = drawCard();
     if (!newCard) return;
 
     let correct = false;
+    let reason = "";
 
-    if (guess === 'Higher') {
-        correct = newCard.value > currentCard!.value;
-    } else { // Lower
-        correct = newCard.value < currentCard!.value;
+    if (newCard.value === previousCard.value) {
+        correct = false;
+        reason = `Same card value! It's the ${newCard.rank} of ${newCard.suit}.`;
+    } else {
+        if (guess === 'Higher') {
+            correct = newCard.value > previousCard.value;
+        } else { // Lower
+            correct = newCard.value < previousCard.value;
+        }
+        reason = correct 
+            ? `Correct! It's the ${newCard.rank} of ${newCard.suit}. Play again or Pass?` 
+            : `Incorrect! It was the ${newCard.rank} of ${newCard.suit}.`;
     }
 
-    // Tie condition
-    if (newCard.value === currentCard!.value) {
-        handleIncorrectGuess(`Same card! It's a ${newCard.rank} of ${newCard.suit}.`);
-        return;
-    }
+    setDiscardPile(prev => [...prev, previousCard]);
+    setCurrentCard(newCard);
+    setMessage(reason);
 
     if (correct) {
-        if(currentCard) setDiscardPile(prev => [...prev, currentCard]);
-        setCurrentCard(newCard);
         setGameState("PLAY_OR_PASS");
-        setMessage(`Correct! It's a ${newCard.rank}. Play again or Pass?`);
     } else {
-        handleIncorrectGuess(`Incorrect! It was a ${newCard.rank}.`);
+        setGameState("SHOWING_RESULT");
     }
   }
 
@@ -235,6 +240,8 @@ export default function Game() {
     setMessage("Welcome to POP! Setup the game to start.");
     setCurrentCard(null);
     setDiscardPile([]);
+    setGameStarted(false);
+    setTurnOwnerIndex(null);
   }
 
   if (isLoading) {
@@ -317,18 +324,6 @@ export default function Game() {
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.5 }}
               />
-            ) : !gameStarted ? (
-              <motion.button
-                onClick={handleBeginClick}
-                className="w-full h-full rounded-lg border-2 border-dashed border-gray-400 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-700/20 hover:border-yellow-400 hover:text-yellow-400 transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="mt-2 text-center font-semibold">Click here to begin</span>
-              </motion.button>
             ) : (
               <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
             )}
@@ -344,7 +339,7 @@ export default function Game() {
       <section className="flex-grow flex items-center justify-center w-full">
         <AnimatePresence mode="wait">
           <div className="flex flex-col items-center justify-center gap-4">
-            {gameStarted && gameState === "AWAITING_COLOR_GUESS" && (
+            {gameState === "AWAITING_COLOR_GUESS" && (
               <motion.div 
                 key="color-guess"
                 className="flex gap-4 mt-4"
@@ -356,7 +351,7 @@ export default function Game() {
                 <button onClick={() => handleColorGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
               </motion.div>
             )}
-            {gameStarted && gameState === "AWAITING_KEEP_OR_CHANGE" && (
+            {gameState === "AWAITING_KEEP_OR_CHANGE" && (
               <motion.div 
                 key="keep-change"
                 className="flex gap-4 mt-4"
@@ -364,11 +359,21 @@ export default function Game() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                <button onClick={handleKeepCard} className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Keep</button>
-                <button onClick={handleChangeCard} className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Change</button>
+                <button 
+                  onClick={handleKeepCard} 
+                  className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                >
+                  Keep
+                </button>
+                <button 
+                  onClick={handleChangeCard} 
+                  className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                >
+                  Change
+                </button>
               </motion.div>
             )}
-            {gameStarted && gameState === "AWAITING_HIGHER_LOWER" && (
+            {gameState === "AWAITING_HIGHER_LOWER" && (
               <motion.div 
                 key="higher-lower"
                 className="flex gap-4 mt-4"
@@ -380,7 +385,7 @@ export default function Game() {
                 <button onClick={() => handleHigherLowerGuess('Lower')} className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Lower</button>
               </motion.div>
             )}
-            {gameStarted && gameState === "PLAY_OR_PASS" && (
+            {gameState === "PLAY_OR_PASS" && (
               <motion.div 
                 key="play-pass"
                 className="flex gap-4 mt-4"
@@ -407,8 +412,8 @@ export default function Game() {
       </section>
 
       <footer className="w-full text-center mt-auto pt-4">
-        <p className="text-gray-500 text-sm">&copy; 2023 POP Game. All rights reserved.</p>
+        <p className="text-gray-500 text-sm">&copy; 2024 POP Game. All rights reserved.</p>
       </footer>
     </main>
   );
-} 
+}
