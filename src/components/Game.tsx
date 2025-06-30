@@ -321,7 +321,7 @@ export default function Game() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
       <header className="w-full text-center mb-8">
-        <motion.h1 
+        <motion.h1
           className="font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)]"
           variants={titleVariants}
           animate={titleFeedback}
@@ -333,7 +333,7 @@ export default function Game() {
       </header>
 
       {installPrompt && (
-        <button 
+        <button
           onClick={handleInstallClick}
           className="fixed bottom-4 right-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-5 rounded-full shadow-lg z-50"
           title="Install App"
@@ -348,10 +348,10 @@ export default function Game() {
         <section
           ref={playerScrollContainerRef}
           className="w-full flex items-center gap-4 mb-4 overflow-x-auto py-2"
-          style={{ 
+          style={{
             paddingLeft: 'calc(50% - 4rem)', /* 4rem is half of w-32 */
             paddingRight: 'calc(50% - 4rem)',
-            scrollbarWidth: 'none' 
+            scrollbarWidth: 'none'
           }}
         >
           <AnimatePresence>
@@ -392,32 +392,63 @@ export default function Game() {
       <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
         <div className="relative w-44 h-64 md:w-60 md:h-80">
-          <div className="relative w-full h-full rounded-lg bg-blue-800 border-2 border-blue-500 flex items-center justify-center shadow-2xl">
+          <div className="relative w-full h-full rounded-lg flex items-center justify-center shadow-2xl">
             <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
-            <span className="absolute -bottom-2 -right-2 bg-gray-900 rounded-full px-2 py-0.5 text-xs md:text-sm font-bold border-2 border-blue-400">{deck.length}</span>
           </div>
         </div>
-        <div className="relative w-44 h-64 md:w-60 md:h-80 transform">
-          <AnimatePresence mode="wait">
-            {currentCard ? (
-              <motion.img
-                key={currentCard.suit + currentCard.rank}
-                src={getCardImageSrc(currentCard)}
-                alt={`${currentCard.rank} of ${currentCard.suit}`}
-                className="w-full h-full rounded-lg shadow-lg"
-                initial={{ rotateY: 180, scale: 0.8, opacity: 0 }}
-                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ duration: 0.5 }}
+        <div className="relative w-44 h-64 md:w-60 md:h-80">
+          {/* Static pile of discarded cards */}
+          {discardPile.map((card, index) => (
+            <div
+              key={`${card.rank}-${card.suit}-${index}`}
+              className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
+              style={{ zIndex: index }}
+            >
+              <img
+                src={getCardImageSrc(card)}
+                alt={`${card.rank} of ${card.suit}`}
+                className="w-full h-full rounded-lg"
               />
-            ) : (
-              <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
+            </div>
+          ))}
+
+          <AnimatePresence>
+            {currentCard && (
+              <div
+                className="absolute w-full h-full"
+                style={{
+                  perspective: '1000px',
+                  zIndex: discardPile.length + 1
+                }}
+              >
+                <motion.div
+                  key={currentCard.suit + currentCard.rank}
+                  className="relative w-full h-full"
+                  initial={{ x: '-125%', rotateY: 180 }}
+                  animate={{ x: 0, rotateY: 0 }}
+                  exit={{ scale: 0.9, y: 5, opacity: 0.8, transition: {duration: 0.2} }}
+                  transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* Card Back */}
+                  <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                    <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg shadow-lg" />
+                  </div>
+                  {/* Card Front */}
+                  <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden' }}>
+                    <img
+                      src={getCardImageSrc(currentCard)}
+                      alt={`${currentCard.rank} of ${currentCard.suit}`}
+                      className="w-full h-full rounded-lg shadow-lg"
+                    />
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
-          {discardPile.length > 0 && (
-            <span className="absolute bottom-2 right-2 text-white font-bold text-xl bg-black/50 px-2 py-1 rounded">
-              {discardPile.length}
-            </span>
+
+          {!currentCard && discardPile.length === 0 && (
+            <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
           )}
         </div>
       </section>
@@ -429,7 +460,7 @@ export default function Game() {
           <div className="h-16 flex items-center justify-center">
             <AnimatePresence mode="wait">
               {gameState === "AWAITING_COLOR_GUESS" && (
-                <motion.div 
+                <motion.div
                   key="color-guess"
                   className="flex gap-4"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -442,21 +473,21 @@ export default function Game() {
               )}
 
               {gameState === "AWAITING_KEEP_OR_CHANGE" && (
-                <motion.div 
+                <motion.div
                   key="keep-change"
                   className="flex gap-4"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <button 
-                    onClick={handleKeepCard} 
+                  <button
+                    onClick={handleKeepCard}
                     className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
                   >
                     Keep
                   </button>
-                  <button 
-                    onClick={handleChangeCard} 
+                  <button
+                    onClick={handleChangeCard}
                     className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
                   >
                     Change
@@ -468,15 +499,15 @@ export default function Game() {
 
           {/* --- Row 2: Higher Lower --- */}
           <div className="flex gap-4">
-            <button 
-              onClick={() => handleHigherLowerGuess('Higher')} 
+            <button
+              onClick={() => handleHigherLowerGuess('Higher')}
               className="w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "AWAITING_HIGHER_LOWER"}
             >
               Higher
             </button>
-            <button 
-              onClick={() => handleHigherLowerGuess('Lower')} 
+            <button
+              onClick={() => handleHigherLowerGuess('Lower')}
               className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "AWAITING_HIGHER_LOWER"}
             >
@@ -486,15 +517,15 @@ export default function Game() {
 
           {/* --- Row 3: Play Pass --- */}
           <div className="flex gap-4 items-center">
-            <button 
-              onClick={handlePlay} 
+            <button
+              onClick={handlePlay}
               className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "PLAY_OR_PASS"}
             >
               Play
             </button>
-            <button 
-              onClick={handlePass} 
+            <button
+              onClick={handlePass}
               className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "PLAY_OR_PASS"}
             >
@@ -504,7 +535,7 @@ export default function Game() {
 
           <AnimatePresence>
             {gameState === "GAME_OVER" && (
-              <motion.div 
+              <motion.div
                 key="game-over"
                 className="text-center"
                 initial={{ opacity: 0, scale: 0.8 }}
