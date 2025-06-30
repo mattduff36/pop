@@ -9,7 +9,7 @@ import { getCardImageSrc } from "@/lib/utils";
 
 type GameState =
   | "SETUP"
-  | "AWAITING_COLOR_GUESS"
+  | "AWAITING_COLOUR_GUESS"
   | "AWAITING_KEEP_OR_CHANGE"
   | "AWAITING_HIGHER_LOWER"
   | "PLAY_OR_PASS"
@@ -30,6 +30,8 @@ export default function Game() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [titleFeedback, setTitleFeedback] = useState<'correct' | 'incorrect' | 'idle'>('idle');
   const [failureReason, setFailureReason] = useState<'INCORRECT_GUESS' | 'SAME_VALUE_TIE' | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -108,7 +110,7 @@ export default function Game() {
       setMessage(`${messagePrefix} It's your turn again. Red or Black?`);
     }
     
-    setGameState("AWAITING_COLOR_GUESS");
+    setGameState("AWAITING_COLOUR_GUESS");
     setFailureReason(null);
   };
 
@@ -122,7 +124,7 @@ export default function Game() {
     setCurrentPlayerIndex(startingPlayer);
 
     setGameStarted(true);
-    setGameState("AWAITING_COLOR_GUESS");
+    setGameState("AWAITING_COLOUR_GUESS");
     setMessage(`${players[startingPlayer].name}, is the first card Red or Black?`);
   };
 
@@ -148,7 +150,7 @@ export default function Game() {
     }
   };
 
-  const handleColorGuess = (guess: "Red" | "Black") => {
+  const handleColourGuess = (guess: "Red" | "Black") => {
     const nextCard = drawCard();
     if (!nextCard) return;
 
@@ -391,7 +393,14 @@ export default function Game() {
 
       <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
-        <div className="relative w-44 h-64 md:w-60 md:h-80">
+        <div 
+          className="relative w-44 h-64 md:w-60 md:h-80 cursor-pointer"
+          onClick={() => setIsSettingsOpen(true)}
+          role="button"
+          aria-label="Open settings"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setIsSettingsOpen(true)}
+        >
           <div className="relative w-full h-full rounded-lg flex items-center justify-center shadow-2xl">
             <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
           </div>
@@ -456,19 +465,19 @@ export default function Game() {
       <section className="flex-grow flex items-center justify-center w-full">
         <div className="flex flex-col items-center justify-center gap-4">
 
-          {/* --- Row 1: Color Guess / Keep Change --- */}
+          {/* --- Row 1: Colour Guess / Keep Change --- */}
           <div className="h-16 flex items-center justify-center">
             <AnimatePresence mode="wait">
-              {gameState === "AWAITING_COLOR_GUESS" && (
+              {gameState === "AWAITING_COLOUR_GUESS" && (
                 <motion.div
-                  key="color-guess"
+                  key="colour-guess"
                   className="flex gap-4"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <button onClick={() => handleColorGuess('Red')} className="w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Red</button>
-                  <button onClick={() => handleColorGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
+                  <button onClick={() => handleColourGuess('Red')} className="w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Red</button>
+                  <button onClick={() => handleColourGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
                 </motion.div>
               )}
 
@@ -551,6 +560,113 @@ export default function Game() {
       <footer className="w-full text-center mt-auto pt-4">
         <p className="text-gray-500 text-sm">&copy; 2024 POP Game. All rights reserved.</p>
       </footer>
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setIsSettingsOpen(false);
+              setShowRules(false);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-2xl w-full max-w-md"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+            >
+              <AnimatePresence mode="wait">
+                {showRules ? (
+                  <motion.div
+                    key="rules-view"
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 50 }}
+                  >
+                    <h2 className="text-2xl font-bold mb-4 text-yellow-400 font-cinzel text-center">How to Play</h2>
+                    <div className="space-y-4 text-gray-300 text-sm mb-6 max-h-80 overflow-y-auto pr-2">
+                      <div>
+                        <h3 className="font-bold text-yellow-500 mb-1">Objective</h3>
+                        <p>Be the last player with lives remaining. Everyone starts with 4 lives.</p>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-yellow-500 mb-1">Gameplay</h3>
+                        <ol className="list-decimal list-inside space-y-2">
+                          <li>
+                            <span className="font-semibold">Red or Black?</span> Start your turn by guessing the colour of the first card.
+                            <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
+                              <li><span className="font-semibold text-green-400">Correct:</span> You decide whether to keep that card or draw a new one.</li>
+                              <li><span className="font-semibold text-red-400">Incorrect:</span> The turn passes to the next player to decide, but then it comes back to you for the next step.</li>
+                            </ul>
+                          </li>
+                          <li>
+                            <span className="font-semibold">Higher or Lower?</span> Guess if the next card drawn will be higher or lower than the current one.
+                            <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
+                              <li><span className="font-semibold text-green-400">Correct:</span> You can either <span className="font-bold">PLAY</span> (guess again on the new card) or <span className="font-bold">PASS</span> the turn to the next player.</li>
+                              <li><span className="font-semibold text-red-400">Incorrect:</span> You lose a life and start your turn over from Step 1.</li>
+                            </ul>
+                          </li>
+                        </ol>
+                      </div>
+                       <div>
+                        <h3 className="font-bold text-yellow-500 mb-1">Key Rules</h3>
+                        <ul className="list-disc list-inside space-y-1 text-gray-400">
+                          <li>Aces are always HIGH.</li>
+                          <li>If the next card is the <span className="font-semibold">same value</span>, you lose a life.</li>
+                          <li>When you lose your last life, you are out of the game.</li>
+                          <li>The deck automatically reshuffles when it runs out.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="flex justify-center mt-4">
+                       <button
+                        onClick={() => setShowRules(false)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="main-view"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="text-center"
+                  >
+                    <h2 className="text-2xl font-bold mb-6 text-yellow-400 font-cinzel">Settings</h2>
+                    <div className="flex flex-col items-center gap-4">
+                      <button
+                        onClick={() => setShowRules(true)}
+                        className="w-48 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                      >
+                        How to Play
+                      </button>
+                      <button
+                        onClick={() => {
+                          handlePlayAgain();
+                          setIsSettingsOpen(false);
+                          setShowRules(false);
+                        }}
+                        className="w-48 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                      >
+                        Reset Game
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
