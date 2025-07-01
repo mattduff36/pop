@@ -31,10 +31,9 @@ export default function GameSetup({
     preloadAssets();
   }, [preloadAssets]);
 
-  const handleNumPlayersChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const count = parseInt(e.target.value, 10);
+  const handleNumPlayersChange = (count: number) => {
     setNumPlayers(count);
-    setPlayerNames(Array.from({ length: count }, (_, i) => `Player ${i + 1}`));
+    setPlayerNames(Array.from({ length: count }, (_, i) => playerNames[i] || `Player ${i + 1}`));
   };
 
   const handleNameChange = (index: number, name: string) => {
@@ -71,7 +70,7 @@ export default function GameSetup({
         </button>
 
         {/* Title */}
-        <h1 className="text-4xl md:text-5xl font-bold text-yellow-400 text-center">Game Setup</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-yellow-400 text-center font-cinzel">Game Setup</h1>
 
         {/* Speaker Icon - Right */}
         <button
@@ -96,21 +95,54 @@ export default function GameSetup({
         </button>
       </div>
       
-      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg w-full max-w-sm md:max-w-md">
+      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg w-full max-w-sm md:max-w-lg">
         <div className="mb-6">
-          <label htmlFor="numPlayers" className="block text-base md:text-lg font-medium text-gray-300 mb-2">
+          <label className="block text-base md:text-lg font-medium text-gray-300 mb-4 text-center">
             Number of Players
           </label>
-          <select
-            id="numPlayers"
-            value={numPlayers}
-            onChange={handleNumPlayersChange}
-            className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
-          >
+          <div className="flex justify-center gap-2">
             {[2, 3, 4, 5, 6].map(n => (
-              <option key={n} value={n}>{n}</option>
+              <button
+                key={n}
+                onClick={() => {
+                  playButtonSound();
+                  handleNumPlayersChange(n);
+                }}
+                className={`
+                  relative w-12 h-16 rounded-md border-2 transition-all duration-200 transform hover:scale-105 hover:-translate-y-1
+                  ${numPlayers === n 
+                    ? 'bg-white border-yellow-400 text-gray-900 shadow-lg shadow-yellow-400/50' 
+                    : 'bg-gray-100 border-gray-400 text-gray-900 hover:bg-white hover:border-gray-300'
+                  }
+                `}
+                aria-label={`Select ${n} players`}
+                tabIndex={0}
+              >
+                {/* Card corner numbers */}
+                <div className="absolute top-0.5 left-0.5 text-xs font-bold">
+                  {n}
+                </div>
+                <div className="absolute bottom-0.5 right-0.5 text-xs font-bold rotate-180">
+                  {n}
+                </div>
+                
+                {/* Center number */}
+                <div className="flex items-center justify-center h-full">
+                  <span className="text-3xl font-bold font-cinzel">
+                    {n}
+                  </span>
+                </div>
+                
+                {/* Playing card suit decoration */}
+                <div className="absolute top-3 left-0.5 text-xs opacity-60">
+                  {n === 2 ? '♠' : n === 3 ? '♥' : n === 4 ? '♦' : n === 5 ? '♣' : '♠'}
+                </div>
+                <div className="absolute bottom-3 right-0.5 text-xs opacity-60 rotate-180">
+                  {n === 2 ? '♠' : n === 3 ? '♥' : n === 4 ? '♦' : n === 5 ? '♣' : '♠'}
+                </div>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         <div className="mb-6">

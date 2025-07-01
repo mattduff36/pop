@@ -891,48 +891,113 @@ export default function Game() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="text-center"
                   >
-                    <h2 className="text-2xl font-bold mb-6 text-yellow-400 font-cinzel">Settings</h2>
-                    <div className="flex flex-col items-center gap-4">
-                      <button
-                        onClick={() => {
-                          playButtonSound();
-                          setShowRules(true);
-                        }}
-                        className="w-48 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
-                      >
-                        How to Play
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleToggleMute();
-                          playButtonSound();
-                        }}
-                        className="w-48 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                      >
-                        {isMuted ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l-5-5m0 5l5-5" />
+                    <h2 className="text-2xl font-bold mb-8 text-yellow-400 font-cinzel">Settings</h2>
+                    
+                    {/* Settings Grid */}
+                    <div className="grid gap-4 mb-6">
+                      {/* How to Play Card */}
+                      <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600/50 hover:border-blue-500/50 transition-all">
+                        <button
+                          onClick={() => {
+                            playButtonSound();
+                            setShowRules(true);
+                          }}
+                          className="w-full flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-500 transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-white group-hover:text-blue-300 transition-colors">How to Play</h3>
+                              <p className="text-sm text-gray-400">View game rules and instructions</p>
+                            </div>
+                          </div>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 group-hover:text-blue-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </button>
+                      </div>
+
+                      {/* Audio Settings Card */}
+                      <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600/50 hover:border-indigo-500/50 transition-all">
+                        <button
+                          onClick={() => {
+                            handleToggleMute();
+                            playButtonSound();
+                          }}
+                          className="w-full flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg transition-colors ${isMuted ? 'bg-red-600 group-hover:bg-red-500' : 'bg-indigo-600 group-hover:bg-indigo-500'}`}>
+                              {isMuted ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l-5-5m0 5l5-5" />
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <h3 className={`font-semibold transition-colors ${isMuted ? 'text-white group-hover:text-red-300' : 'text-white group-hover:text-indigo-300'}`}>
+                                Sound Effects
+                              </h3>
+                              <p className="text-sm text-gray-400">
+                                Currently {isMuted ? 'muted' : 'enabled'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${isMuted ? 'bg-red-900/50 text-red-300 group-hover:bg-red-800/50' : 'bg-green-900/50 text-green-300 group-hover:bg-green-800/50'}`}>
+                            {isMuted ? 'OFF' : 'ON'}
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Reset Game Card */}
+                      <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600/50 hover:border-yellow-500/50 transition-all">
+                        <button
+                          onClick={() => {
+                            playButtonSound();
+                            handlePlayAgain();
+                            setIsSettingsOpen(false);
+                            setShowRules(false);
+                          }}
+                          className="w-full flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="bg-yellow-500 p-2 rounded-lg group-hover:bg-yellow-400 transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-white group-hover:text-yellow-300 transition-colors">Reset Game</h3>
+                              <p className="text-sm text-gray-400">Start a new game with new players</p>
+                            </div>
+                          </div>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 group-hover:text-yellow-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                        )}
-                        <span>{isMuted ? 'Unmute' : 'Mute'}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          playButtonSound();
-                          handlePlayAgain();
-                          setIsSettingsOpen(false);
-                          setShowRules(false);
-                        }}
-                        className="w-48 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
-                      >
-                        Reset Game
-                      </button>
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Close Button */}
+                    <button
+                      onClick={() => {
+                        playButtonSound();
+                        setIsSettingsOpen(false);
+                        setShowRules(false);
+                      }}
+                      className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg border border-gray-500"
+                    >
+                      Close Settings
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
