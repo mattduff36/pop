@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Player } from "@/lib/types";
 import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
+import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
-import useSound from "@/hooks/useSound";
+import useAudioManager from "@/hooks/useAudioManager";
 
 type GameState =
   | "SETUP"
@@ -44,16 +45,60 @@ export default function Game() {
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const playButtonSound = useSound('/sounds/button-click.mp3', 0.5, isMuted);
-  const playCardFlipSound = useSound('/sounds/card-flip.mp3', 0.5, isMuted);
-  const playCorrectSound = useSound('/sounds/correct-guess.mp3', 0.5, isMuted);
-  const playIncorrectSound = useSound('/sounds/incorrect-guess.mp3', 0.5, isMuted);
-  const playGameStartSound = useSound('/sounds/game-start.mp3', 0.6, isMuted);
+  // Initialize optimized audio manager (MUST be before any early returns)
+  const { playSound, preloadSound } = useAudioManager(isMuted);
+  
+  // Memoize deck creation for better performance
+  const initialDeck = useMemo(() => createDeck(), []);
 
+  // Memoize active players calculation
+  const activePlayers = useMemo(() => 
+    players.filter(p => p.lives > 0), [players]
+  );
+
+  // All hooks must be called before any early returns
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
     return () => clearTimeout(timer);
   }, []);
+
+  // Preload sounds on component mount
+  useEffect(() => {
+    preloadSound('/sounds/button-click.mp3', 3, 0.5);
+    preloadSound('/sounds/card-flip.mp3', 3, 0.5);
+    preloadSound('/sounds/correct-guess.mp3', 3, 0.5);
+    preloadSound('/sounds/incorrect-guess.mp3', 3, 0.5);
+    preloadSound('/sounds/game-start.mp3', 3, 0.6);
+  }, [preloadSound]);
+
+  // Sound player functions
+  const playButtonSound = useCallback(() => playSound('/sounds/button-click.mp3'), [playSound]);
+  const playCardFlipSound = useCallback(() => playSound('/sounds/card-flip.mp3'), [playSound]);
+  const playCorrectSound = useCallback(() => playSound('/sounds/correct-guess.mp3'), [playSound]);
+  const playIncorrectSound = useCallback(() => playSound('/sounds/incorrect-guess.mp3'), [playSound]);
+  const playGameStartSound = useCallback(() => playSound('/sounds/game-start.mp3'), [playSound]);
+
+  // Memoize title variants to prevent unnecessary re-creation (MOVED TO TOP)
+  const titleVariants = useMemo(() => ({
+    idle: {
+      color: "#facc15", // tailwind yellow-400
+    },
+    correct: {
+      scale: [1, 1.1, 1],
+      color: ["#facc15", "#4ade80", "#facc15"], // yellow-400, green-400, yellow-400
+      transition: {
+        duration: 2,
+        times: [0, 0.5, 1]
+      }
+    },
+    incorrect: {
+      x: [0, -10, 10, -10, 10, 0],
+      color: ["#facc15", "#ef4444", "#facc15"], // yellow-400, red-500, yellow-400
+      transition: {
+        duration: 0.4
+      }
+    }
+  }), []);
 
 
 
@@ -130,11 +175,10 @@ export default function Game() {
     setFailureReason(null);
   };
 
-  const handleGameStart = (players: Player[]) => {
+  const handleGameStart = useCallback((players: Player[]) => {
     playGameStartSound();
     setPlayers(players);
-    const newDeck = createDeck();
-    setDeck(shuffleDeck(newDeck));
+    setDeck(shuffleDeck([...initialDeck]));
     setCurrentCard(null);
     
     const startingPlayer = Math.floor(Math.random() * players.length);
@@ -143,14 +187,14 @@ export default function Game() {
     setGameStarted(true);
     setGameState("AWAITING_COLOUR_GUESS");
     setMessage(`${players[startingPlayer].name}, is the first card Red or Black?`);
-  };
+  }, [playGameStartSound, initialDeck]);
 
-  const handleInstallClick = () => {
+  const handleInstallClick = useCallback(() => {
     if (installPrompt) {
       installPrompt.prompt();
       playButtonSound();
     }
-  };
+  }, [installPrompt, playButtonSound]);
 
   const drawCard = (playSound: boolean = true) => {
     if (playSound) {
@@ -202,7 +246,16 @@ export default function Game() {
     }
   };
 
-  const handleColourGuess = (guess: "Red" | "Black") => {
+  const advanceToNextPlayer = useCallback(() => {
+    let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    // Skip players who are out of lives
+    while (players[nextPlayerIndex].lives <= 0) {
+      nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+    }
+    return nextPlayerIndex;
+  }, [currentPlayerIndex, players]);
+
+  const handleColourGuess = useCallback((guess: "Red" | "Black") => {
     playButtonSound();
     const nextCard = drawCard();
     if (!nextCard) return;
@@ -227,28 +280,18 @@ export default function Game() {
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, you decide: keep or change?`);
     }
-  };
+  }, [playButtonSound, drawCard, smoothCardTransition, playCorrectSound, playIncorrectSound, players, currentPlayerIndex, advanceToNextPlayer]);
 
-  const advanceToNextPlayer = () => {
-    let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    // Skip players who are out of lives
-    while (players[nextPlayerIndex].lives <= 0) {
-      nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
-    }
-    return nextPlayerIndex;
-  }
-
-  const checkForWinner = () => {
-    const activePlayers = players.filter(p => p.lives > 0);
+  const checkForWinner = useCallback(() => {
     if (activePlayers.length === 1) {
         setGameState("GAME_OVER");
         setMessage(`Game Over! ${activePlayers[0].name} is the winner!`);
         return true;
     }
     return false;
-  }
+  }, [activePlayers]);
 
-  const handleKeepCard = () => {
+  const handleKeepCard = useCallback(() => {
     playButtonSound();
     setGameState("AWAITING_HIGHER_LOWER");
     if (turnOwnerIndex !== null) {
@@ -258,9 +301,9 @@ export default function Game() {
     } else {
       setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. Higher or Lower?`);
     }
-  }
+  }, [playButtonSound, turnOwnerIndex, currentCard, players]);
 
-  const handleChangeCard = () => {
+  const handleChangeCard = useCallback(() => {
     playButtonSound();
     const newCard = drawCard();
     if (!newCard) return;
@@ -275,7 +318,7 @@ export default function Game() {
     } else {
       setMessage(`New card is ${newCard.rank} of ${newCard.suit}. Higher or Lower?`);
     }
-  }
+  }, [playButtonSound, drawCard, smoothCardTransition, turnOwnerIndex, players]);
 
   const handleHigherLowerGuess = (guess: 'Higher' | 'Lower') => {
     playButtonSound();
@@ -330,25 +373,25 @@ export default function Game() {
     }
   };
 
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     playButtonSound();
     setGameState("AWAITING_HIGHER_LOWER");
     setMessage(`Card is ${currentCard?.rank}. Higher or Lower?`);
-  };
+  }, [playButtonSound, currentCard]);
 
-  const handlePass = () => {
+  const handlePass = useCallback(() => {
     playButtonSound();
     const nextPlayerIndex = advanceToNextPlayer();
     setCurrentPlayerIndex(nextPlayerIndex);
     setGameState("AWAITING_HIGHER_LOWER");
     setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
-  };
+  }, [playButtonSound, advanceToNextPlayer, players, currentCard]);
 
-  const handleToggleMute = () => {
+  const handleToggleMute = useCallback(() => {
     setIsMuted(prev => !prev);
-  };
+  }, []);
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = useCallback(() => {
     playButtonSound();
     setIsLoading(true);
     setGameStarted(false);
@@ -365,7 +408,7 @@ export default function Game() {
     setFailureReason(null);
     setHeartPopAnimation(null);
     setTimeout(() => setIsLoading(false), 500);
-  };
+  }, [playButtonSound]);
 
   if (isLoading) {
     return (
@@ -392,27 +435,6 @@ export default function Game() {
       />
     );
   }
-
-  const titleVariants = {
-    idle: {
-      color: "#facc15", // tailwind yellow-400
-    },
-    correct: {
-      scale: [1, 1.1, 1],
-      color: ["#facc15", "#4ade80", "#facc15"], // yellow-400, green-400, yellow-400
-      transition: {
-        duration: 2,
-        times: [0, 0.5, 1]
-      }
-    },
-    incorrect: {
-      x: [0, -10, 10, -10, 10, 0],
-      color: ["#facc15", "#ef4444", "#facc15"], // yellow-400, red-500, yellow-400
-      transition: {
-        duration: 0.4
-      }
-    }
-  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
@@ -441,37 +463,12 @@ export default function Game() {
       )}
 
       <div className="relative w-full">
-        <section
+        <PlayerList 
           ref={playerScrollContainerRef}
-          className="w-full flex items-center gap-4 mb-4 overflow-x-auto py-2"
-          style={{
-            paddingLeft: 'calc(50% - 4rem)', /* 4rem is half of w-32 */
-            paddingRight: 'calc(50% - 4rem)',
-            scrollbarWidth: 'none'
-          }}
-        >
-          <AnimatePresence>
-            {players.map((player, index) => (
-              <motion.div
-                ref={el => { playerRefs.current[index] = el; }}
-                key={player.id}
-                layout
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                transition={{ duration: 0.3 }}
-                className={`p-3 rounded-lg border-2 transition-all duration-300 text-center flex-shrink-0 w-32 will-change-transform ${
-                  currentPlayerIndex === index
-                    ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
-                    : "border-gray-600 bg-gray-800"
-                }`}
-              >
-                <h2 className="text-sm font-semibold truncate">{player.name}</h2>
-                <p className="text-base mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </section>
+          players={players}
+          currentPlayerIndex={currentPlayerIndex}
+          playerRefs={playerRefs}
+        />
 
         {/* Left Fade */}
         <div className="absolute top-0 left-0 bottom-0 w-24 bg-gradient-to-r from-gray-900 to-transparent pointer-events-none"></div>
