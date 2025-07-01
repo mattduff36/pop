@@ -24,6 +24,11 @@ export default function Game() {
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [cardKey, setCardKey] = useState<number>(0);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
+  const [heartPopAnimation, setHeartPopAnimation] = useState<{
+    show: boolean;
+    playerIndex: number;
+    startPosition: { x: number; y: number };
+  } | null>(null);
   const [turnOwnerIndex, setTurnOwnerIndex] = useState<number | null>(null);
   const [gameState, setGameState] = useState<GameState>("SETUP");
   const [gameStarted, setGameStarted] = useState<boolean>(false);
@@ -201,6 +206,23 @@ export default function Game() {
     }, 150);
   };
 
+  const triggerHeartLossAnimation = () => {
+    const playerElement = playerRefs.current[currentPlayerIndex];
+    if (playerElement) {
+      const rect = playerElement.getBoundingClientRect();
+      const heartPosition = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height * 0.7 // Position near where hearts are displayed
+      };
+      
+      setHeartPopAnimation({
+        show: true,
+        playerIndex: currentPlayerIndex,
+        startPosition: heartPosition
+      });
+    }
+  };
+
   const handleColourGuess = (guess: "Red" | "Black") => {
     playButtonSound();
     const nextCard = drawCard();
@@ -217,7 +239,7 @@ export default function Game() {
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
     } else {
-      // Small delay to let card flip sound play first
+      // Small delay to let card flip sound play first (no life lost on Red/Black incorrect)
       setTimeout(() => playIncorrectSound(), 100);
       setTurnOwnerIndex(currentPlayerIndex);
       const nextPlayerIndex = advanceToNextPlayer();
@@ -291,6 +313,8 @@ export default function Game() {
         correct = false;
         reason = `Same card value! It's the ${newCard.rank} of ${newCard.suit}.`;
         setFailureReason('SAME_VALUE_TIE');
+        // Trigger heart animation for same value tie (life loss)
+        triggerHeartLossAnimation();
     } else {
         if (guess === 'Higher') {
             correct = newCard.value > previousCard.value;
@@ -302,6 +326,8 @@ export default function Game() {
             : `Incorrect! It was the ${newCard.rank} of ${newCard.suit}.`;
         if (!correct) {
           setFailureReason('INCORRECT_GUESS');
+          // Trigger heart animation for incorrect guess (life loss)
+          triggerHeartLossAnimation();
         }
     }
     
@@ -316,11 +342,11 @@ export default function Game() {
       }, 100);
       setGameState("PLAY_OR_PASS");
     } else {
-      // Small delay to let card flip sound play first
+      // For both incorrect guesses and same value ties, play sound with delay to sync with heart animation
       setTimeout(() => {
         playIncorrectSound();
         setTitleFeedback('incorrect');
-      }, 100);
+      }, 200);
       setGameState("SHOWING_RESULT");
     }
   };
@@ -358,6 +384,7 @@ export default function Game() {
     setTurnOwnerIndex(null);
     setTitleFeedback('idle');
     setFailureReason(null);
+    setHeartPopAnimation(null);
     setTimeout(() => setIsLoading(false), 500);
   };
 
@@ -657,7 +684,18 @@ export default function Game() {
       </section>
 
       <footer className="w-full text-center mt-auto pt-4">
-        <p className="text-gray-500 text-sm">&copy; 2024 POP Game. All rights reserved.</p>
+        <p className="text-gray-500 text-sm">
+          &copy; 2025{' '}
+          <a 
+            href="https://mpdee.co.uk" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-gray-400 hover:text-gray-300 transition-colors underline"
+          >
+            mpdee.co.uk
+          </a>
+          {' '}| All rights reserved.
+        </p>
       </footer>
 
       <AnimatePresence>
@@ -786,6 +824,78 @@ export default function Game() {
                 )}
               </AnimatePresence>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Heart Pop Animation */}
+      <AnimatePresence>
+        {heartPopAnimation?.show && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center"
+            onAnimationComplete={() => {
+              setTimeout(() => {
+                setHeartPopAnimation(null);
+              }, 1000);
+            }}
+          >
+            <motion.div
+              initial={{
+                scale: 0.1,
+                x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
+                y: heartPopAnimation.startPosition.y - window.innerHeight / 2,
+                opacity: 1
+              }}
+              animate={{
+                scale: [0.1, 12, 8],
+                x: 0,
+                y: 0,
+                opacity: [1, 1, 0],
+                rotate: [0, -10, 5, 0]
+              }}
+              transition={{
+                duration: 1.2,
+                times: [0, 0.6, 1],
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              className="text-red-500 text-8xl filter drop-shadow-2xl"
+              style={{
+                textShadow: '0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.6)'
+              }}
+            >
+              💔
+            </motion.div>
+            
+            {/* Particle Effects */}
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{
+                  scale: 0,
+                  x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
+                  y: heartPopAnimation.startPosition.y - window.innerHeight / 2,
+                  opacity: 0
+                }}
+                animate={{
+                  scale: [0, 1, 0],
+                  x: [0, (Math.cos(i * 45 * Math.PI / 180) * 300)],
+                  y: [0, (Math.sin(i * 45 * Math.PI / 180) * 300)],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{
+                  duration: 1.5,
+                  delay: 0.3,
+                  ease: "easeOut"
+                }}
+                className="absolute text-red-400 text-2xl"
+              >
+                💔
+              </motion.div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
