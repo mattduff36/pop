@@ -67,6 +67,7 @@ const useAssetPreloader = () => {
       '/sounds/correct-guess.mp3',
       '/sounds/game-start.mp3',
       '/sounds/incorrect-guess.mp3',
+      '/sounds/game-win.mp3',
     ];
 
     const allAssets = [...cardImages, ...soundFiles];

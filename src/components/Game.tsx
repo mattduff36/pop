@@ -81,6 +81,7 @@ export default function Game() {
     preloadSound('/sounds/correct-guess.mp3', 3, 0.5);
     preloadSound('/sounds/incorrect-guess.mp3', 3, 0.5);
     preloadSound('/sounds/game-start.mp3', 3, 0.6);
+    preloadSound('/sounds/game-win.mp3', 3, 0.7);
   }, [preloadSound]);
 
   // Sound player functions
@@ -89,6 +90,7 @@ export default function Game() {
   const playCorrectSound = useCallback(() => playSound('/sounds/correct-guess.mp3'), [playSound]);
   const playIncorrectSound = useCallback(() => playSound('/sounds/incorrect-guess.mp3'), [playSound]);
   const playGameStartSound = useCallback(() => playSound('/sounds/game-start.mp3'), [playSound]);
+  const playGameWinSound = useCallback(() => playSound('/sounds/game-win.mp3'), [playSound]);
 
   const handleTitleAnimationComplete = useCallback(() => {
     setTitleFeedback('idle');
@@ -249,10 +251,12 @@ export default function Game() {
         setWinnerName(activePlayersArray[0].name);
         setGameState("GAME_OVER");
         setMessage(`Game Over! ${activePlayersArray[0].name} is the winner!`);
+        // Play game win sound with a small delay to let other sounds finish
+        setTimeout(() => playGameWinSound(), 200);
         return true;
     }
     return false;
-  }, [players]);
+  }, [players, playGameWinSound]);
 
   const processTurnEnd = useCallback(() => {
     if (!failureReason) return;
