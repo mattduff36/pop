@@ -22,6 +22,7 @@ export default function Game() {
   const [deck, setDeck] = useState<Card[]>([]);
   const [discardPile, setDiscardPile] = useState<Card[]>([]);
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
+  const [cardKey, setCardKey] = useState<number>(0);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [turnOwnerIndex, setTurnOwnerIndex] = useState<number | null>(null);
   const [gameState, setGameState] = useState<GameState>("SETUP");
@@ -47,6 +48,29 @@ export default function Game() {
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
     return () => clearTimeout(timer);
+  }, []);
+
+  // Preload card images for smoother animations
+  useEffect(() => {
+    const preloadImages = async () => {
+      const suits = ['clubs', 'diamonds', 'hearts', 'spades'];
+      const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king', 'ace'];
+      
+      const imagePromises = suits.flatMap(suit =>
+        ranks.map(rank => {
+          return new Promise<void>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Still resolve on error to prevent hanging
+            img.src = `/cards/SVG-cards/${rank}_of_${suit}.svg`;
+          });
+        })
+      );
+
+      await Promise.all(imagePromises);
+    };
+
+    preloadImages();
   }, []);
 
   useEffect(() => {
@@ -144,8 +168,11 @@ export default function Game() {
     }
   };
 
-  const drawCard = () => {
-    playCardFlipSound();
+  const drawCard = (playSound: boolean = true) => {
+    if (playSound) {
+      // Small delay to let button sound play first
+      setTimeout(() => playCardFlipSound(), 50);
+    }
     if (deck.length > 0) {
       const newDeck = [...deck];
       const card = newDeck.pop()!;
@@ -161,6 +188,19 @@ export default function Game() {
     }
   };
 
+  const smoothCardTransition = (newCard: Card) => {
+    // If there's a current card, move it to discard pile first
+    if (currentCard) {
+      setDiscardPile(prev => [...prev, currentCard]);
+    }
+    
+    // Small delay to allow exit animation, then set new card
+    setTimeout(() => {
+      setCurrentCard(newCard);
+      setCardKey(prev => prev + 1);
+    }, 150);
+  };
+
   const handleColourGuess = (guess: "Red" | "Black") => {
     playButtonSound();
     const nextCard = drawCard();
@@ -169,15 +209,16 @@ export default function Game() {
     const isRed = nextCard.suit === "Hearts" || nextCard.suit === "Diamonds";
     const isGuessCorrect = (guess === "Red" && isRed) || (guess === "Black" && !isRed);
     
-    if(currentCard) setDiscardPile(prev => [...prev, currentCard]);
-    setCurrentCard(nextCard);
+    smoothCardTransition(nextCard);
 
     if (isGuessCorrect) {
-      playCorrectSound();
+      // Small delay to let card flip sound play first
+      setTimeout(() => playCorrectSound(), 100);
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
     } else {
-      playIncorrectSound();
+      // Small delay to let card flip sound play first
+      setTimeout(() => playIncorrectSound(), 100);
       setTurnOwnerIndex(currentPlayerIndex);
       const nextPlayerIndex = advanceToNextPlayer();
       setCurrentPlayerIndex(nextPlayerIndex);
@@ -223,8 +264,7 @@ export default function Game() {
     const newCard = drawCard();
     if (!newCard) return;
 
-    if(currentCard) setDiscardPile(prev => [...prev, currentCard]);
-    setCurrentCard(newCard);
+    smoothCardTransition(newCard);
     setGameState("AWAITING_HIGHER_LOWER");
 
     if (turnOwnerIndex !== null) {
@@ -266,16 +306,21 @@ export default function Game() {
     }
     
     setMessage(reason);
-    if(previousCard) setDiscardPile(prev => [...prev, previousCard]);
-    setCurrentCard(newCard);
+    smoothCardTransition(newCard);
     
     if (correct) {
-      playCorrectSound();
-      setTitleFeedback('correct');
+      // Small delay to let card flip sound play first
+      setTimeout(() => {
+        playCorrectSound();
+        setTitleFeedback('correct');
+      }, 100);
       setGameState("PLAY_OR_PASS");
     } else {
-      playIncorrectSound();
-      setTitleFeedback('incorrect');
+      // Small delay to let card flip sound play first
+      setTimeout(() => {
+        playIncorrectSound();
+        setTitleFeedback('incorrect');
+      }, 100);
       setGameState("SHOWING_RESULT");
     }
   };
@@ -308,6 +353,7 @@ export default function Game() {
     setDeck([]);
     setDiscardPile([]);
     setCurrentCard(null);
+    setCardKey(0);
     setCurrentPlayerIndex(0);
     setTurnOwnerIndex(null);
     setTitleFeedback('idle');
@@ -463,7 +509,7 @@ export default function Game() {
             </div>
           ))}
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {currentCard && (
               <div
                 className="absolute w-full h-full"
@@ -473,12 +519,23 @@ export default function Game() {
                 }}
               >
                 <motion.div
-                  key={currentCard.suit + currentCard.rank}
+                  key={cardKey}
                   className="relative w-full h-full"
-                  initial={{ x: '-125%', rotateY: 180 }}
-                  animate={{ x: 0, rotateY: 0 }}
-                  exit={{ scale: 0.9, y: 5, opacity: 0.8, transition: {duration: 0.2} }}
-                  transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  initial={{ x: '-120%', rotateY: 180, opacity: 0 }}
+                  animate={{ x: 0, rotateY: 0, opacity: 1 }}
+                  exit={{ 
+                    x: '10%',
+                    y: 8,
+                    scale: 0.95,
+                    opacity: 0,
+                    rotateY: -15,
+                    transition: { duration: 0.15, ease: 'easeIn' }
+                  }}
+                  transition={{ 
+                    duration: 0.5, 
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    opacity: { duration: 0.3 }
+                  }}
                   style={{ transformStyle: 'preserve-3d' }}
                 >
                   {/* Card Back */}
