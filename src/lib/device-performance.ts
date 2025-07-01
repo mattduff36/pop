@@ -31,28 +31,31 @@ export interface PerformanceSettings {
 export const detectDeviceCapabilities = (): DeviceCapabilities => {
   const userAgent = navigator.userAgent;
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent);
   
   // Estimate device performance based on various factors
   const memory = (navigator as any).deviceMemory || 4; // Default to 4GB if not available
   const hardwareConcurrency = navigator.hardwareConcurrency || 4;
   const connectionType = (navigator as any).connection?.effectiveType || '4g';
   
-  // Detect specifically low-end devices
+  // Detect specifically low-end devices with improved iPhone detection
   const isLowEnd = 
     memory <= 2 || 
     hardwareConcurrency <= 2 || 
     connectionType === 'slow-2g' || 
     connectionType === '2g' ||
-    /iPhone [5-8]|iPad [1-6]|Android [4-7]/i.test(userAgent);
+    /iPhone [5-8]|iPad [1-6]|Android [4-7]/i.test(userAgent) ||
+    // Additional iPhone optimization checks
+    (isIOS && (memory <= 3 || hardwareConcurrency <= 4));
 
   const capabilities: DeviceCapabilities = {
     isMobile,
     isLowEnd,
-    maxAnimationFPS: isLowEnd ? 30 : isMobile ? 45 : 60,
-    shouldReduceEffects: isLowEnd || (isMobile && memory <= 4),
+    maxAnimationFPS: isLowEnd ? 30 : (isIOS ? 60 : isMobile ? 45 : 60), // iOS can handle 60fps better
+    shouldReduceEffects: isLowEnd || (isMobile && !isIOS && memory <= 4), // iOS generally handles effects better
     audioQuality: isLowEnd ? 'low' : isMobile ? 'medium' : 'high',
     imageQuality: isLowEnd ? 'medium' : 'high',
-    maxConcurrentAnimations: isLowEnd ? 2 : isMobile ? 4 : 8
+    maxConcurrentAnimations: isLowEnd ? 2 : (isIOS ? 6 : isMobile ? 4 : 8) // iOS can handle more concurrent animations
   };
 
   // Debug logging for mobile devices
@@ -71,6 +74,9 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
 
 // Get performance settings based on device capabilities
 export const getPerformanceSettings = (capabilities: DeviceCapabilities): PerformanceSettings => {
+  const userAgent = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+  
   const baseSettings: PerformanceSettings = {
     animationDuration: {
       card: 400,
@@ -107,6 +113,28 @@ export const getPerformanceSettings = (capabilities: DeviceCapabilities): Perfor
       renderSettings: {
         willChange: false,
         transform3d: true
+      }
+    };
+  }
+
+  // iOS-specific optimizations
+  if (isIOS) {
+    return {
+      animationDuration: {
+        card: 300, // Slightly faster for iOS
+        heart: 800,
+        title: 300
+      },
+      particleCount: {
+        hearts: capabilities.shouldReduceEffects ? 2 : 4
+      },
+      audioSettings: {
+        poolSize: 3, // iOS can handle more audio instances
+        preloadAll: false // iOS handles on-demand loading better
+      },
+      renderSettings: {
+        willChange: true,
+        transform3d: true // iOS handles 3D transforms very well
       }
     };
   }

@@ -7,7 +7,7 @@ import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
-import useAudioManager from "@/hooks/useAudioManager";
+import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
 
 type GameState =
@@ -46,8 +46,8 @@ export default function Game() {
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Initialize audio manager (MUST be before any early returns)
-  const { playSound, preloadSound } = useAudioManager(isMuted);
+  // Initialize mobile-optimized audio manager (MUST be before any early returns)
+  const { playSound, preloadSound } = useMobileAudioManager(isMuted);
   
   // ALL memoized values MUST be at the top before any other logic
   const initialDeck = useMemo(() => createDeck(), []);

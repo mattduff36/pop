@@ -126,7 +126,20 @@ export const useMobileAudioManager = (isMuted: boolean) => {
     // Initialize audio context on first user interaction (mobile requirement)
     if (contextRef.current?.state === 'suspended') {
       console.log('🔊 Resuming suspended audio context');
-      contextRef.current.resume();
+      contextRef.current.resume().catch((error) => {
+        console.warn('Failed to resume audio context:', error);
+      });
+    }
+
+    // Force audio context resume for iOS (more aggressive approach)
+    if (capabilitiesRef.current.isMobile && contextRef.current) {
+      try {
+        if (contextRef.current.state !== 'running') {
+          contextRef.current.resume();
+        }
+      } catch (error) {
+        console.warn('Audio context resume failed:', error);
+      }
     }
 
     const pool = audioPoolRef.current[src];
