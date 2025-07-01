@@ -19,6 +19,7 @@ const useAudioManager = (isMuted: boolean = false) => {
       return;
     }
 
+    console.log(`🔊 Preloading desktop audio: ${soundUrl}`);
     const audioPool: AudioInstance[] = [];
     
     for (let i = 0; i < poolSize; i++) {
@@ -27,7 +28,11 @@ const useAudioManager = (isMuted: boolean = false) => {
       audio.preload = 'auto';
       
       const handleError = (e: Event) => {
-        console.error(`Error loading audio: ${soundUrl}`, e);
+        console.warn(`Desktop audio load error for ${soundUrl}:`, e);
+      };
+      
+      const handleLoad = () => {
+        console.log(`✅ Desktop audio loaded: ${soundUrl}`);
       };
       
       const handleEnded = () => {
@@ -38,6 +43,7 @@ const useAudioManager = (isMuted: boolean = false) => {
       };
       
       audio.addEventListener('error', handleError);
+      audio.addEventListener('canplaythrough', handleLoad);
       audio.addEventListener('ended', handleEnded);
       
       audioPool.push({
@@ -52,11 +58,18 @@ const useAudioManager = (isMuted: boolean = false) => {
 
   // Play a sound from the pool
   const playSound = useCallback((soundUrl: string) => {
-    if (isMuted || !audioPoolRef.current[soundUrl]) {
+    if (isMuted) {
+      console.log('🔇 Desktop sound muted:', soundUrl);
+      return;
+    }
+    
+    if (!audioPoolRef.current[soundUrl]) {
+      console.warn('🔊 Desktop audio pool not found for:', soundUrl);
       return;
     }
     
     try {
+      console.log('🔊 Playing desktop sound:', soundUrl);
       // Find an available audio instance
       const pool = audioPoolRef.current[soundUrl];
       const availableInstance = pool.find(instance => !instance.isPlaying);
@@ -64,15 +77,25 @@ const useAudioManager = (isMuted: boolean = false) => {
       if (availableInstance) {
         availableInstance.isPlaying = true;
         availableInstance.audio.currentTime = 0;
-        availableInstance.audio.play().catch(error => {
-          if (error.name !== 'NotAllowedError') {
-            console.error('Error playing sound:', error);
-          }
-          availableInstance.isPlaying = false;
-        });
+        const playPromise = availableInstance.audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('✅ Desktop sound played successfully:', soundUrl);
+            })
+            .catch(error => {
+              if (error.name !== 'NotAllowedError') {
+                console.warn('Desktop sound play error:', error);
+              }
+              availableInstance.isPlaying = false;
+            });
+        }
+      } else {
+        console.warn('🔊 No available desktop audio instance for:', soundUrl);
       }
     } catch (error) {
-      console.error('Sound playback error:', error);
+      console.error('Desktop sound playback error:', error);
     }
   }, [isMuted]);
 

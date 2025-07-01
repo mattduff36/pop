@@ -7,6 +7,7 @@ import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
+import useAudioManager from "@/hooks/useAudioManager";
 import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
 
@@ -17,7 +18,8 @@ type GameState =
   | "AWAITING_HIGHER_LOWER"
   | "PLAY_OR_PASS"
   | "SHOWING_RESULT"
-  | "GAME_OVER";
+  | "GAME_OVER"
+  | "CREDITS";
 
 export default function Game() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -42,18 +44,21 @@ export default function Game() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [winnerName, setWinnerName] = useState<string>("");
 
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Initialize mobile-optimized audio manager (MUST be before any early returns)
-  const { playSound, preloadSound } = useMobileAudioManager(isMuted);
-  
-  // ALL memoized values MUST be at the top before any other logic
+  // ALL memoized values MUST be at the top before any other logic  
   const initialDeck = useMemo(() => createDeck(), []);
   const activePlayers = useMemo(() => players.filter(p => p.lives > 0), [players]);
   const capabilities = useMemo(() => detectDeviceCapabilities(), []);
   const settings = useMemo(() => getPerformanceSettings(capabilities), [capabilities]);
+
+  // Choose appropriate audio manager based on device capabilities (MUST be before any early returns)
+  const mobileAudio = useMobileAudioManager(isMuted);
+  const desktopAudio = useAudioManager(isMuted);
+  const { playSound, preloadSound } = capabilities.isMobile ? mobileAudio : desktopAudio;
   const titleAnimationClass = useMemo(() => {
     if (titleFeedback === 'idle') return '';
     if (capabilities.shouldReduceEffects) {
@@ -241,6 +246,7 @@ export default function Game() {
   const checkForWinner = useCallback((playersArray = players) => {
     const activePlayersArray = playersArray.filter(p => p.lives > 0);
     if (activePlayersArray.length === 1) {
+        setWinnerName(activePlayersArray[0].name);
         setGameState("GAME_OVER");
         setMessage(`Game Over! ${activePlayersArray[0].name} is the winner!`);
         return true;
@@ -402,9 +408,21 @@ export default function Game() {
     setTitleFeedback('idle');
     setFailureReason(null);
     setHeartPopAnimation(null);
+    setWinnerName("");
     setTimeout(() => setIsLoading(false), 500);
   }, [playButtonSound]);
 
+  const handleShowCredits = useCallback(() => {
+    playButtonSound();
+    setGameState("CREDITS");
+  }, [playButtonSound]);
+
+  const handleBackFromCredits = useCallback(() => {
+    playButtonSound();
+    setGameState("GAME_OVER");
+  }, [playButtonSound]);
+
+  // Render different screens based on game state
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900">
@@ -428,6 +446,88 @@ export default function Game() {
         onToggleRules={() => setShowRules(!showRules)}
         playButtonSound={playButtonSound}
       />
+    );
+  }
+
+  if (gameState === "CREDITS") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="bg-gray-800 border border-gray-700 p-8 rounded-2xl shadow-2xl w-full max-w-lg text-center"
+        >
+          <motion.h1 
+            className="font-cinzel text-4xl md:text-5xl font-bold text-yellow-400 mb-6"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Game Credits
+          </motion.h1>
+          
+          <motion.div 
+            className="space-y-6 text-gray-300"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div>
+              <h2 className="text-xl font-bold text-yellow-500 mb-2">Created by</h2>
+              <a 
+                href="https://mpdee.co.uk" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 transition-colors text-lg font-semibold underline"
+              >
+                mpdee.co.uk
+              </a>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-500 mb-2">About This Game</h3>
+              <p className="text-sm leading-relaxed">
+                "Play or Pass" is a modern digital adaptation of the classic card guessing game. 
+                Test your luck, strategy, and nerve as you compete with friends to be the last player standing.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-500 mb-2">Built With</h3>
+              <p className="text-sm text-gray-400">
+                Next.js • React • TypeScript • Tailwind CSS • Framer Motion
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-xs text-gray-500 italic">
+                Thanks for playing! Share with your friends and see who has the best card intuition.
+              </p>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 mt-8"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            <button
+              onClick={handlePlayAgain}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+            >
+              Play Again
+            </button>
+            <button
+              onClick={handleBackFromCredits}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+            >
+              Back
+            </button>
+          </motion.div>
+        </motion.div>
+      </div>
     );
   }
 
@@ -617,15 +717,79 @@ export default function Game() {
             </button>
           </div>
 
+          {/* Game Over Modal - Moved to fixed position overlay */}
           <AnimatePresence>
             {gameState === "GAME_OVER" && (
               <motion.div
                 key="game-over"
-                className="text-center"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
               >
-                <button onClick={handlePlayAgain} className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Play Again</button>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0, y: 50 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.8, opacity: 0, y: 50 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="bg-gray-800 border-2 border-yellow-400 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 400, damping: 20 }}
+                    className="text-6xl mb-4"
+                  >
+                    🏆
+                  </motion.div>
+                  
+                  <motion.h2 
+                    className="font-cinzel text-3xl font-bold text-yellow-400 mb-2"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    Game Over!
+                  </motion.h2>
+                  
+                  <motion.p 
+                    className="text-xl text-white mb-6"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <span className="font-bold text-yellow-300">{winnerName}</span> wins!
+                  </motion.p>
+                  
+                  <motion.p 
+                    className="text-gray-300 mb-8"
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    Would you like to play again?
+                  </motion.p>
+                  
+                  <motion.div 
+                    className="flex flex-col sm:flex-row gap-4"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <button
+                      onClick={handlePlayAgain}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    >
+                      <span className="text-lg">✓ Yes, Play Again!</span>
+                    </button>
+                    <button
+                      onClick={handleShowCredits}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    >
+                      <span className="text-lg">✗ No, Show Credits</span>
+                    </button>
+                  </motion.div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -796,8 +960,8 @@ export default function Game() {
               className="text-red-500 text-8xl filter drop-shadow-2xl will-change-transform"
               initial={{
                 scale: 0.1,
-                x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
-                y: heartPopAnimation.startPosition.y - window.innerHeight / 2,
+                x: typeof window !== 'undefined' ? heartPopAnimation.startPosition.x - window.innerWidth / 2 : 0,
+                y: typeof window !== 'undefined' ? heartPopAnimation.startPosition.y - window.innerHeight / 2 : 0,
                 opacity: 1
               }}
               animate={{
@@ -825,8 +989,8 @@ export default function Game() {
                 className="absolute text-red-400 text-2xl will-change-transform"
                 initial={{
                   scale: 0,
-                  x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
-                  y: heartPopAnimation.startPosition.y - window.innerHeight / 2,
+                  x: typeof window !== 'undefined' ? heartPopAnimation.startPosition.x - window.innerWidth / 2 : 0,
+                  y: typeof window !== 'undefined' ? heartPopAnimation.startPosition.y - window.innerHeight / 2 : 0,
                   opacity: 0
                 }}
                 animate={{
