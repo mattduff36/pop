@@ -59,7 +59,7 @@ const useAssetPreloader = () => {
     const cardImages = suits.flatMap(suit =>
       ranks.map(rank => `/cards/SVG-cards/${rank}_of_${suit}.svg`)
     );
-    cardImages.push('/cards/SVG-cards/card_back3.svg');
+    cardImages.push('/cards/card-back-new.png');
     
     const soundFiles = [
       '/sounds/button-click.mp3',

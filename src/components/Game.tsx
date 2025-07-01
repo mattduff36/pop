@@ -588,7 +588,7 @@ export default function Game() {
       <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
         <div 
-          className="relative w-44 h-64 md:w-60 md:h-80 cursor-pointer"
+          className="relative w-44 md:w-60 aspect-[365/554] cursor-pointer"
           onClick={() => setIsSettingsOpen(true)}
           role="button"
           aria-label="Open settings"
@@ -596,10 +596,10 @@ export default function Game() {
           onKeyDown={(e) => e.key === 'Enter' && setIsSettingsOpen(true)}
         >
           <div className="relative w-full h-full rounded-lg flex items-center justify-center shadow-2xl">
-            <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg" />
+            <img src="/cards/card-back-new.png" alt="Card Back" className="w-full h-full rounded-lg object-cover" />
           </div>
         </div>
-        <div className="relative w-44 h-64 md:w-60 md:h-80">
+        <div className="relative w-44 md:w-60 aspect-[365/554]">
           {/* Static pile of discarded cards */}
           {discardPile.map((card, index) => (
             <div
@@ -610,7 +610,7 @@ export default function Game() {
               <img
                 src={getCardImageSrc(card)}
                 alt={`${card.rank} of ${card.suit}`}
-                className="w-full h-full rounded-lg"
+                className="w-full h-full rounded-lg object-cover"
               />
             </div>
           ))}
@@ -629,7 +629,7 @@ export default function Game() {
                 <img
                   src={getCardImageSrc(currentCard)}
                   alt={`${currentCard.rank} of ${currentCard.suit}`}
-                  className="w-full h-full rounded-lg shadow-lg"
+                  className="w-full h-full rounded-lg shadow-lg object-cover"
                   loading={capabilities.isMobile ? "lazy" : "eager"}
                 />
               </div>
