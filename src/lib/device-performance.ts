@@ -45,7 +45,7 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
     connectionType === '2g' ||
     /iPhone [5-8]|iPad [1-6]|Android [4-7]/i.test(userAgent);
 
-  const capabilities = {
+  const capabilities: DeviceCapabilities = {
     isMobile,
     isLowEnd,
     maxAnimationFPS: isLowEnd ? 30 : isMobile ? 45 : 60,

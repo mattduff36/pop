@@ -7,7 +7,8 @@ import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
-import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
+import useAudioManager from "@/hooks/useAudioManager";
+import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
 
 type GameState =
   | "SETUP"
@@ -45,12 +46,14 @@ export default function Game() {
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Initialize mobile-optimized audio manager (MUST be before any early returns)
-  const { playSound, preloadSound, capabilities, settings } = useMobileAudioManager(isMuted);
+  // Initialize audio manager (MUST be before any early returns)
+  const { playSound, preloadSound } = useAudioManager(isMuted);
   
   // ALL memoized values MUST be at the top before any other logic
   const initialDeck = useMemo(() => createDeck(), []);
   const activePlayers = useMemo(() => players.filter(p => p.lives > 0), [players]);
+  const capabilities = useMemo(() => detectDeviceCapabilities(), []);
+  const settings = useMemo(() => getPerformanceSettings(capabilities), [capabilities]);
   const titleAnimationClass = useMemo(() => {
     if (titleFeedback === 'idle') return '';
     if (capabilities.shouldReduceEffects) {
@@ -432,7 +435,7 @@ export default function Game() {
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
       <header className="w-full text-center mb-8">
         <h1 
-          className={`font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] mobile-title ${titleAnimationClass}`}
+          className={`font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] text-yellow-400 mobile-title ${titleAnimationClass}`}
           onAnimationEnd={handleTitleAnimationComplete}
           style={{
             willChange: settings.renderSettings.willChange ? 'transform, color' : 'auto',
