@@ -45,7 +45,7 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
     connectionType === '2g' ||
     /iPhone [5-8]|iPad [1-6]|Android [4-7]/i.test(userAgent);
 
-  return {
+  const capabilities = {
     isMobile,
     isLowEnd,
     maxAnimationFPS: isLowEnd ? 30 : isMobile ? 45 : 60,
@@ -54,6 +54,19 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
     imageQuality: isLowEnd ? 'medium' : 'high',
     maxConcurrentAnimations: isLowEnd ? 2 : isMobile ? 4 : 8
   };
+
+  // Debug logging for mobile devices
+  if (isMobile) {
+    console.log('📱 Device Capabilities:', {
+      userAgent,
+      memory,
+      hardwareConcurrency,
+      connectionType,
+      capabilities
+    });
+  }
+
+  return capabilities;
 };
 
 // Get performance settings based on device capabilities

@@ -20,13 +20,14 @@ export const useMobileAudioManager = (isMuted: boolean) => {
 
   // Initialize Web Audio Context for better mobile performance
   const initializeAudioContext = useCallback(() => {
-    if (isInitializedRef.current || capabilitiesRef.current.isLowEnd) return;
+    if (isInitializedRef.current) return;
     
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioContext) {
         contextRef.current = new AudioContext();
         isInitializedRef.current = true;
+        console.log('Mobile audio context initialized:', contextRef.current.state);
       }
     } catch (error) {
       console.warn('Audio context initialization failed:', error);
@@ -115,10 +116,16 @@ export const useMobileAudioManager = (isMuted: boolean) => {
 
   // Play sound with mobile optimizations
   const playSound = useCallback((src: string) => {
-    if (isMuted) return;
+    if (isMuted) {
+      console.log('🔇 Sound muted:', src);
+      return;
+    }
+
+    console.log('🔊 Playing sound:', src, 'Context state:', contextRef.current?.state);
 
     // Initialize audio context on first user interaction (mobile requirement)
     if (contextRef.current?.state === 'suspended') {
+      console.log('🔊 Resuming suspended audio context');
       contextRef.current.resume();
     }
 

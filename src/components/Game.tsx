@@ -7,7 +7,6 @@ import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
-import useAudioManager from "@/hooks/useAudioManager";
 import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 
 type GameState =
@@ -49,13 +48,17 @@ export default function Game() {
   // Initialize mobile-optimized audio manager (MUST be before any early returns)
   const { playSound, preloadSound, capabilities, settings } = useMobileAudioManager(isMuted);
   
-  // Memoize deck creation for better performance
+  // ALL memoized values MUST be at the top before any other logic
   const initialDeck = useMemo(() => createDeck(), []);
-
-  // Memoize active players calculation
-  const activePlayers = useMemo(() => 
-    players.filter(p => p.lives > 0), [players]
-  );
+  const activePlayers = useMemo(() => players.filter(p => p.lives > 0), [players]);
+  const titleAnimationClass = useMemo(() => {
+    if (titleFeedback === 'idle') return '';
+    if (capabilities.shouldReduceEffects) {
+      return titleFeedback === 'correct' ? 'simple-correct' : 'simple-incorrect';
+    }
+    return titleFeedback === 'correct' ? 'mobile-correct' : 'mobile-incorrect';
+  }, [titleFeedback, capabilities.shouldReduceEffects]);
+  const heartParticleCount = useMemo(() => settings.particleCount.hearts, [settings.particleCount.hearts]);
 
   // All hooks must be called before any early returns
   useEffect(() => {
@@ -79,21 +82,9 @@ export default function Game() {
   const playIncorrectSound = useCallback(() => playSound('/sounds/incorrect-guess.mp3'), [playSound]);
   const playGameStartSound = useCallback(() => playSound('/sounds/game-start.mp3'), [playSound]);
 
-  // Mobile-optimized title animation (replaces heavy Framer Motion)
-  const titleAnimationClass = useMemo(() => {
-    if (titleFeedback === 'idle') return '';
-    if (capabilities.shouldReduceEffects) {
-      return titleFeedback === 'correct' ? 'simple-correct' : 'simple-incorrect';
-    }
-    return titleFeedback === 'correct' ? 'mobile-correct' : 'mobile-incorrect';
-  }, [titleFeedback, capabilities.shouldReduceEffects]);
-
   const handleTitleAnimationComplete = useCallback(() => {
     setTitleFeedback('idle');
   }, []);
-
-  // Optimized heart particle count based on device capabilities
-  const heartParticleCount = useMemo(() => settings.particleCount.hearts, [settings.particleCount.hearts]);
 
 
 
