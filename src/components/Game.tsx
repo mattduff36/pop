@@ -8,6 +8,7 @@ import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
 import useAudioManager from "@/hooks/useAudioManager";
+import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 
 type GameState =
   | "SETUP"
@@ -45,8 +46,8 @@ export default function Game() {
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Initialize optimized audio manager (MUST be before any early returns)
-  const { playSound, preloadSound } = useAudioManager(isMuted);
+  // Initialize mobile-optimized audio manager (MUST be before any early returns)
+  const { playSound, preloadSound, capabilities, settings } = useMobileAudioManager(isMuted);
   
   // Memoize deck creation for better performance
   const initialDeck = useMemo(() => createDeck(), []);
@@ -78,27 +79,21 @@ export default function Game() {
   const playIncorrectSound = useCallback(() => playSound('/sounds/incorrect-guess.mp3'), [playSound]);
   const playGameStartSound = useCallback(() => playSound('/sounds/game-start.mp3'), [playSound]);
 
-  // Memoize title variants to prevent unnecessary re-creation (MOVED TO TOP)
-  const titleVariants = useMemo(() => ({
-    idle: {
-      color: "#facc15", // tailwind yellow-400
-    },
-    correct: {
-      scale: [1, 1.1, 1],
-      color: ["#facc15", "#4ade80", "#facc15"], // yellow-400, green-400, yellow-400
-      transition: {
-        duration: 2,
-        times: [0, 0.5, 1]
-      }
-    },
-    incorrect: {
-      x: [0, -10, 10, -10, 10, 0],
-      color: ["#facc15", "#ef4444", "#facc15"], // yellow-400, red-500, yellow-400
-      transition: {
-        duration: 0.4
-      }
+  // Mobile-optimized title animation (replaces heavy Framer Motion)
+  const titleAnimationClass = useMemo(() => {
+    if (titleFeedback === 'idle') return '';
+    if (capabilities.shouldReduceEffects) {
+      return titleFeedback === 'correct' ? 'simple-correct' : 'simple-incorrect';
     }
-  }), []);
+    return titleFeedback === 'correct' ? 'mobile-correct' : 'mobile-incorrect';
+  }, [titleFeedback, capabilities.shouldReduceEffects]);
+
+  const handleTitleAnimationComplete = useCallback(() => {
+    setTitleFeedback('idle');
+  }, []);
+
+  // Optimized heart particle count based on device capabilities
+  const heartParticleCount = useMemo(() => settings.particleCount.hearts, [settings.particleCount.hearts]);
 
 
 
@@ -122,14 +117,7 @@ export default function Game() {
     };
   }, []);
 
-  useEffect(() => {
-    if (gameState === 'SHOWING_RESULT') {
-        const timeoutId = setTimeout(() => {
-            processTurnEnd();
-        }, 2500); 
-        return () => clearTimeout(timeoutId);
-    }
-  }, [gameState]);
+
 
   useEffect(() => {
     // Ensure player refs are created
@@ -146,34 +134,7 @@ export default function Game() {
     }
   }, [currentPlayerIndex, players]);
 
-  const processTurnEnd = () => {
-    if (!failureReason) return;
 
-    const newPlayers = [...players];
-    const playerWhoGuessed = newPlayers[currentPlayerIndex];
-    playerWhoGuessed.lives--;
-    setPlayers(newPlayers);
-
-    if (checkForWinner()) return;
-
-    const lostLastLife = playerWhoGuessed.lives <= 0;
-    const shouldAdvance = failureReason === 'SAME_VALUE_TIE' || lostLastLife;
-
-    let messagePrefix = lostLastLife 
-        ? `${playerWhoGuessed.name} is out of lives!`
-        : `${playerWhoGuessed.name} loses a life.`;
-
-    if (shouldAdvance) {
-      const nextPlayerIndex = advanceToNextPlayer();
-      setCurrentPlayerIndex(nextPlayerIndex);
-      setMessage(`${messagePrefix} It's now ${newPlayers[nextPlayerIndex].name}'s turn. Red or Black?`);
-    } else {
-      setMessage(`${messagePrefix} It's your turn again. Red or Black?`);
-    }
-    
-    setGameState("AWAITING_COLOUR_GUESS");
-    setFailureReason(null);
-  };
 
   const handleGameStart = useCallback((players: Player[]) => {
     playGameStartSound();
@@ -222,11 +183,12 @@ export default function Game() {
       setDiscardPile(prev => [...prev, currentCard]);
     }
     
-    // Small delay to allow exit animation, then set new card
+    // Adaptive delay based on device capabilities
+    const delay = capabilities.shouldReduceEffects ? 100 : 150;
     setTimeout(() => {
       setCurrentCard(newCard);
       setCardKey(prev => prev + 1);
-    }, 150);
+    }, delay);
   };
 
   const triggerHeartLossAnimation = () => {
@@ -246,11 +208,11 @@ export default function Game() {
     }
   };
 
-  const advanceToNextPlayer = useCallback(() => {
-    let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  const advanceToNextPlayer = useCallback((playersArray = players) => {
+    let nextPlayerIndex = (currentPlayerIndex + 1) % playersArray.length;
     // Skip players who are out of lives
-    while (players[nextPlayerIndex].lives <= 0) {
-      nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+    while (playersArray[nextPlayerIndex].lives <= 0) {
+      nextPlayerIndex = (nextPlayerIndex + 1) % playersArray.length;
     }
     return nextPlayerIndex;
   }, [currentPlayerIndex, players]);
@@ -282,14 +244,53 @@ export default function Game() {
     }
   }, [playButtonSound, drawCard, smoothCardTransition, playCorrectSound, playIncorrectSound, players, currentPlayerIndex, advanceToNextPlayer]);
 
-  const checkForWinner = useCallback(() => {
-    if (activePlayers.length === 1) {
+  const checkForWinner = useCallback((playersArray = players) => {
+    const activePlayersArray = playersArray.filter(p => p.lives > 0);
+    if (activePlayersArray.length === 1) {
         setGameState("GAME_OVER");
-        setMessage(`Game Over! ${activePlayers[0].name} is the winner!`);
+        setMessage(`Game Over! ${activePlayersArray[0].name} is the winner!`);
         return true;
     }
     return false;
-  }, [activePlayers]);
+  }, [players]);
+
+  const processTurnEnd = useCallback(() => {
+    if (!failureReason) return;
+
+    const newPlayers = [...players];
+    const playerWhoGuessed = newPlayers[currentPlayerIndex];
+    playerWhoGuessed.lives--;
+    setPlayers(newPlayers);
+
+    if (checkForWinner(newPlayers)) return;
+
+    const lostLastLife = playerWhoGuessed.lives <= 0;
+    const shouldAdvance = failureReason === 'SAME_VALUE_TIE' || lostLastLife;
+
+    let messagePrefix = lostLastLife 
+        ? `${playerWhoGuessed.name} is out of lives!`
+        : `${playerWhoGuessed.name} loses a life.`;
+
+    if (shouldAdvance) {
+      const nextPlayerIndex = advanceToNextPlayer(newPlayers);
+      setCurrentPlayerIndex(nextPlayerIndex);
+      setMessage(`${messagePrefix} It's now ${newPlayers[nextPlayerIndex].name}'s turn. Red or Black?`);
+    } else {
+      setMessage(`${messagePrefix} It's your turn again. Red or Black?`);
+    }
+    
+    setGameState("AWAITING_COLOUR_GUESS");
+    setFailureReason(null);
+  }, [failureReason, players, currentPlayerIndex, checkForWinner, advanceToNextPlayer]);
+
+  useEffect(() => {
+    if (gameState === 'SHOWING_RESULT') {
+        const timeoutId = setTimeout(() => {
+            processTurnEnd();
+        }, 2500); 
+        return () => clearTimeout(timeoutId);
+    }
+  }, [gameState, processTurnEnd]);
 
   const handleKeepCard = useCallback(() => {
     playButtonSound();
@@ -439,14 +440,18 @@ export default function Game() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
       <header className="w-full text-center mb-8">
-        <motion.h1
-          className="font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] will-change-transform"
-          variants={titleVariants}
-          animate={titleFeedback}
-          onAnimationComplete={() => setTitleFeedback('idle')}
+        <h1 
+          className={`font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] mobile-title ${titleAnimationClass}`}
+          onAnimationEnd={handleTitleAnimationComplete}
+          style={{
+            willChange: settings.renderSettings.willChange ? 'transform, color' : 'auto',
+            transform: settings.renderSettings.transform3d ? 'translate3d(0,0,0)' : 'none',
+            // Dynamic animation duration
+            '--title-duration': `${settings.animationDuration.title}ms`
+          } as React.CSSProperties}
         >
           PLAY or PASS?
-        </motion.h1>
+        </h1>
         <p className="text-gray-300 mt-4 text-lg h-8 px-2">{message}</p>
       </header>
 
@@ -512,34 +517,25 @@ export default function Game() {
             </div>
           ))}
 
-          <AnimatePresence mode="wait">
-            {currentCard && (
-              <motion.div
+                      {currentCard && (
+              <div
                 key={cardKey}
-                className="absolute w-full h-full will-change-transform"
-                initial={{ x: '-120%', scaleX: 0, opacity: 0 }}
-                animate={{ x: 0, scaleX: 1, opacity: 1 }}
-                exit={{ 
-                  x: '10%',
-                  y: 8,
-                  scale: 0.95,
-                  opacity: 0,
-                  transition: { duration: 0.15, ease: 'easeIn' }
-                }}
-                transition={{ 
-                  duration: 0.4, 
-                  ease: [0.25, 0.46, 0.45, 0.94],
-                }}
-                style={{ zIndex: discardPile.length + 1 }}
+                className={`absolute w-full h-full ${capabilities.shouldReduceEffects ? 'mobile-card-simple' : 'mobile-card-full'}`}
+                style={{ 
+                  zIndex: discardPile.length + 1,
+                  willChange: settings.renderSettings.willChange ? 'transform, opacity' : 'auto',
+                  transform: settings.renderSettings.transform3d ? 'translate3d(0,0,0)' : 'none',
+                  '--card-duration': `${settings.animationDuration.card}ms`
+                } as React.CSSProperties}
               >
                 <img
                   src={getCardImageSrc(currentCard)}
                   alt={`${currentCard.rank} of ${currentCard.suit}`}
                   className="w-full h-full rounded-lg shadow-lg"
+                  loading={capabilities.isMobile ? "lazy" : "eager"}
                 />
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
 
           {!currentCard && discardPile.length === 0 && (
             <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
@@ -817,9 +813,9 @@ export default function Game() {
                 opacity: [1, 1, 0]
               }}
               transition={{
-                duration: 1.0,
+                duration: settings.animationDuration.heart / 1000,
                 times: [0, 0.6, 1],
-                ease: [0.25, 0.46, 0.45, 0.94]
+                ease: capabilities.shouldReduceEffects ? "linear" : [0.25, 0.46, 0.45, 0.94]
               }}
               style={{
                 textShadow: '0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.6)'
@@ -828,8 +824,8 @@ export default function Game() {
               💔
             </motion.div>
             
-            {/* Particle Effects - Reduced from 8 to 4 for better performance */}
-            {[...Array(4)].map((_, i) => (
+            {/* Particle Effects - Adaptive count based on device capabilities */}
+            {capabilities.shouldReduceEffects ? null : [...Array(heartParticleCount)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute text-red-400 text-2xl will-change-transform"
@@ -846,8 +842,8 @@ export default function Game() {
                   opacity: [0, 1, 0]
                 }}
                 transition={{
-                  duration: 1.2,
-                  delay: 0.3,
+                  duration: settings.animationDuration.heart / 1000 * 1.2,
+                  delay: capabilities.shouldReduceEffects ? 0.1 : 0.3,
                   ease: "easeOut"
                 }}
               >

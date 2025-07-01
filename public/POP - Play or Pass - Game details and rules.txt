@@ -1,0 +1,31 @@
+POP - Play or Pass
+==================
+
+Number of Players:
+2 - 6
+
+
+Aim of the game:
+This game is played with a standard pack of 52 playing cards. The cards are drawn from the top of a pack of face down cards, turned over, and placed face up next to the pack of face down cards. When it is time for the next card to be drawn, it is taken from the top of the pack of face down cards, and put face up on top of the previous face up card. 
+
+Each player has 4 lives, and takes turns to guess if the next card drawn will be higher or lower than the card currently shown on top of the pack. The first player is chosen at random, and the game starts when the first player clicks or touches the empty pile of drawn cards.
+
+Gameplay:
+1.	The player who's turn it is must guess what colour (Red or Black) the first card will be.
+	2.	If they guess correctly, the player can choose whether to keep or change the card for the next card. 
+	3.	If the player guesses incorrectly, the other player(s) choose whether to keep or change the card. (For simplicity, when there are more than 2 players, the choice can be made by everyone, but the next player in line will have the overall say, and will be responsible for inputting the choice.) The gameplay then returns back to the player who guessed the colour incorrectly.
+
+4.	The player must then choose whether the next card is higher or lower than the card shown. The next card is then drawn.
+	5.	If the player guessed correctly, they can then choose to PLAY OR PASS.
+		6.	If they choose to PLAY, they can continue and move back to step 4.
+		7.	If they choose to PASS, the game passes on to the next player in turn, and the next player starts their turn from step 4.
+	8.	If the player guesses incorrectly, they lose a life, and the game play stays with them, and they continue from step 1.
+
+The game continues until there is only one player remaining with lives. That player is then the winner. 
+
+
+Rules:
+Aces are always HIGH.
+If the next card drawn is the same value as the current card, the player looses a live, and the game play stays with them, and they continue from step 1.
+When a player looses their last life, the game passes to the next player in turn, and they start from step 1.
+If the whole pack of cards is used before the game ends, the last card drawn remains as the current card, and the rest of the pack is shuffled, and placed back down, face down, like before.
