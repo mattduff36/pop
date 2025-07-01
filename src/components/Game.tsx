@@ -42,6 +42,7 @@ export default function Game() {
   const playCardFlipSound = useSound('/sounds/card-flip.mp3', 0.5, isMuted);
   const playCorrectSound = useSound('/sounds/correct-guess.mp3', 0.5, isMuted);
   const playIncorrectSound = useSound('/sounds/incorrect-guess.mp3', 0.5, isMuted);
+  const playGameStartSound = useSound('/sounds/game-start.mp3', 0.6, isMuted);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
@@ -122,6 +123,7 @@ export default function Game() {
   };
 
   const handleGameStart = (players: Player[]) => {
+    playGameStartSound();
     setPlayers(players);
     const newDeck = createDeck();
     setDeck(shuffleDeck(newDeck));
@@ -327,7 +329,16 @@ export default function Game() {
   }
 
   if (gameState === "SETUP") {
-    return <GameSetup onGameStart={handleGameStart} />;
+    return (
+      <GameSetup 
+        onGameStart={handleGameStart} 
+        isMuted={isMuted}
+        onToggleMute={handleToggleMute}
+        showRules={showRules}
+        onToggleRules={() => setShowRules(!showRules)}
+        playButtonSound={playButtonSound}
+      />
+    );
   }
 
   const titleVariants = {
