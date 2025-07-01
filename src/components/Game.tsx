@@ -780,13 +780,13 @@ export default function Game() {
                       onClick={handlePlayAgain}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
-                      <span className="text-lg">✓ Yes, Play Again!</span>
+                      <span className="text-4xl">✓</span>
                     </button>
                     <button
                       onClick={handleShowCredits}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
-                      <span className="text-lg">✗ No, Show Credits</span>
+                      <span className="text-4xl">✗</span>
                     </button>
                   </motion.div>
                 </motion.div>
