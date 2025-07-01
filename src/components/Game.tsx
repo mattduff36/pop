@@ -55,28 +55,7 @@ export default function Game() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Preload card images for smoother animations
-  useEffect(() => {
-    const preloadImages = async () => {
-      const suits = ['clubs', 'diamonds', 'hearts', 'spades'];
-      const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'jack', 'queen', 'king', 'ace'];
-      
-      const imagePromises = suits.flatMap(suit =>
-        ranks.map(rank => {
-          return new Promise<void>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve();
-            img.onerror = () => resolve(); // Still resolve on error to prevent hanging
-            img.src = `/cards/SVG-cards/${rank}_of_${suit}.svg`;
-          });
-        })
-      );
 
-      await Promise.all(imagePromises);
-    };
-
-    preloadImages();
-  }, []);
 
   useEffect(() => {
     // PWA Install Prompt
@@ -439,7 +418,7 @@ export default function Game() {
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
       <header className="w-full text-center mb-8">
         <motion.h1
-          className="font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)]"
+          className="font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] will-change-transform"
           variants={titleVariants}
           animate={titleFeedback}
           onAnimationComplete={() => setTitleFeedback('idle')}
@@ -481,7 +460,7 @@ export default function Game() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.5 }}
                 transition={{ duration: 0.3 }}
-                className={`p-3 rounded-lg border-2 transition-all duration-300 text-center flex-shrink-0 w-32 ${
+                className={`p-3 rounded-lg border-2 transition-all duration-300 text-center flex-shrink-0 w-32 will-change-transform ${
                   currentPlayerIndex === index
                     ? "border-yellow-400 bg-yellow-900 shadow-md shadow-yellow-400/20"
                     : "border-gray-600 bg-gray-800"
@@ -538,47 +517,30 @@ export default function Game() {
 
           <AnimatePresence mode="wait">
             {currentCard && (
-              <div
-                className="absolute w-full h-full"
-                style={{
-                  perspective: '1000px',
-                  zIndex: discardPile.length + 1
+              <motion.div
+                key={cardKey}
+                className="absolute w-full h-full will-change-transform"
+                initial={{ x: '-120%', scaleX: 0, opacity: 0 }}
+                animate={{ x: 0, scaleX: 1, opacity: 1 }}
+                exit={{ 
+                  x: '10%',
+                  y: 8,
+                  scale: 0.95,
+                  opacity: 0,
+                  transition: { duration: 0.15, ease: 'easeIn' }
                 }}
+                transition={{ 
+                  duration: 0.4, 
+                  ease: [0.25, 0.46, 0.45, 0.94],
+                }}
+                style={{ zIndex: discardPile.length + 1 }}
               >
-                <motion.div
-                  key={cardKey}
-                  className="relative w-full h-full"
-                  initial={{ x: '-120%', rotateY: 180, opacity: 0 }}
-                  animate={{ x: 0, rotateY: 0, opacity: 1 }}
-                  exit={{ 
-                    x: '10%',
-                    y: 8,
-                    scale: 0.95,
-                    opacity: 0,
-                    rotateY: -15,
-                    transition: { duration: 0.15, ease: 'easeIn' }
-                  }}
-                  transition={{ 
-                    duration: 0.5, 
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                    opacity: { duration: 0.3 }
-                  }}
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  {/* Card Back */}
-                  <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                    <img src="/cards/SVG-cards/card_back3.svg" alt="Card Back" className="w-full h-full rounded-lg shadow-lg" />
-                  </div>
-                  {/* Card Front */}
-                  <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden' }}>
-                    <img
-                      src={getCardImageSrc(currentCard)}
-                      alt={`${currentCard.rank} of ${currentCard.suit}`}
-                      className="w-full h-full rounded-lg shadow-lg"
-                    />
-                  </div>
-                </motion.div>
-              </div>
+                <img
+                  src={getCardImageSrc(currentCard)}
+                  alt={`${currentCard.rank} of ${currentCard.suit}`}
+                  className="w-full h-full rounded-lg shadow-lg"
+                />
+              </motion.div>
             )}
           </AnimatePresence>
 
@@ -597,7 +559,7 @@ export default function Game() {
               {gameState === "AWAITING_COLOUR_GUESS" && (
                 <motion.div
                   key="colour-guess"
-                  className="flex gap-4"
+                  className="flex gap-4 will-change-transform"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
@@ -610,7 +572,7 @@ export default function Game() {
               {gameState === "AWAITING_KEEP_OR_CHANGE" && (
                 <motion.div
                   key="keep-change"
-                  className="flex gap-4"
+                  className="flex gap-4 will-change-transform"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
@@ -844,6 +806,7 @@ export default function Game() {
             }}
           >
             <motion.div
+              className="text-red-500 text-8xl filter drop-shadow-2xl will-change-transform"
               initial={{
                 scale: 0.1,
                 x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
@@ -851,18 +814,16 @@ export default function Game() {
                 opacity: 1
               }}
               animate={{
-                scale: [0.1, 12, 8],
+                scale: [0.1, 10, 7],
                 x: 0,
                 y: 0,
-                opacity: [1, 1, 0],
-                rotate: [0, -10, 5, 0]
+                opacity: [1, 1, 0]
               }}
               transition={{
-                duration: 1.2,
+                duration: 1.0,
                 times: [0, 0.6, 1],
                 ease: [0.25, 0.46, 0.45, 0.94]
               }}
-              className="text-red-500 text-8xl filter drop-shadow-2xl"
               style={{
                 textShadow: '0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.6)'
               }}
@@ -870,10 +831,11 @@ export default function Game() {
               💔
             </motion.div>
             
-            {/* Particle Effects */}
-            {[...Array(8)].map((_, i) => (
+            {/* Particle Effects - Reduced from 8 to 4 for better performance */}
+            {[...Array(4)].map((_, i) => (
               <motion.div
                 key={i}
+                className="absolute text-red-400 text-2xl will-change-transform"
                 initial={{
                   scale: 0,
                   x: heartPopAnimation.startPosition.x - window.innerWidth / 2,
@@ -882,16 +844,15 @@ export default function Game() {
                 }}
                 animate={{
                   scale: [0, 1, 0],
-                  x: [0, (Math.cos(i * 45 * Math.PI / 180) * 300)],
-                  y: [0, (Math.sin(i * 45 * Math.PI / 180) * 300)],
+                  x: [0, (Math.cos(i * 90 * Math.PI / 180) * 250)],
+                  y: [0, (Math.sin(i * 90 * Math.PI / 180) * 250)],
                   opacity: [0, 1, 0]
                 }}
                 transition={{
-                  duration: 1.5,
+                  duration: 1.2,
                   delay: 0.3,
                   ease: "easeOut"
                 }}
-                className="absolute text-red-400 text-2xl"
               >
                 💔
               </motion.div>

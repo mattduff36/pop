@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Player } from "@/lib/types";
+import useAssetPreloader from "@/hooks/useAssetPreloader";
 
 interface GameSetupProps {
   onGameStart: (players: Player[]) => void;
@@ -23,6 +24,12 @@ export default function GameSetup({
 }: GameSetupProps) {
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2"]);
+  const { progress, preloadAssets } = useAssetPreloader();
+
+  // Start preloading assets when component mounts
+  useEffect(() => {
+    preloadAssets();
+  }, [preloadAssets]);
 
   const handleNumPlayersChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const count = parseInt(e.target.value, 10);
@@ -121,11 +128,37 @@ export default function GameSetup({
             </div>
         </div>
 
+        {/* Asset Loading Progress */}
+        {!progress.isComplete && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-300">Loading game assets...</span>
+              <span className="text-sm text-gray-300">{progress.percentage}%</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <motion.div
+                className="bg-yellow-400 h-2 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress.percentage}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              {progress.loaded} of {progress.total} assets loaded
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleStartGame}
-          className="w-full py-3 md:py-4 bg-green-600 hover:bg-green-700 rounded-lg font-bold text-lg md:text-xl transition-transform transform hover:scale-105"
+          disabled={!progress.isComplete}
+          className={`w-full py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl transition-all transform ${
+            progress.isComplete
+              ? "bg-green-600 hover:bg-green-700 hover:scale-105 cursor-pointer"
+              : "bg-gray-600 cursor-not-allowed opacity-50"
+          }`}
         >
-          Start Game
+          {progress.isComplete ? "Start Game" : "Loading Assets..."}
         </button>
       </div>
 
