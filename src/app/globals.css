@@ -247,6 +247,29 @@ body {
   overscroll-behavior: none;
 }
 
+/* Landscape Mode Prevention for Mobile */
+@media (orientation: landscape) and (max-width: 768px) {
+  /* Prevent horizontal scrolling in landscape */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure game container respects the orientation modal */
+  .game-container {
+    position: relative;
+  }
+}
+
+/* Lock screen orientation preference (CSS hint - not enforced) */
+@media (max-width: 768px) {
+  html {
+    /* CSS hint for preferred orientation */
+    /* Note: This is advisory only - the modal handles the enforcement */
+    writing-mode: vertical-lr;
+    writing-mode: initial; /* Reset immediately */
+  }
+}
+
 /* Mobile-Optimized Animations */
 .mobile-title {
   transition: color 0.2s ease;
