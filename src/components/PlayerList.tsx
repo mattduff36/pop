@@ -13,7 +13,7 @@ const PlayerList = memo(forwardRef<HTMLDivElement, PlayerListProps>(
     return (
       <section
         ref={ref}
-        className="w-full flex items-center gap-4 mb-4 overflow-x-auto py-2"
+        className="w-full flex items-center gap-4 overflow-x-auto py-1"
         style={{
           paddingLeft: 'calc(50% - 4rem)', /* 4rem is half of w-32 */
           paddingRight: 'calc(50% - 4rem)',

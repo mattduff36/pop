@@ -539,8 +539,9 @@ export default function Game() {
   }
 
   return (
-    <main className={`game-container flex flex-col items-center justify-start bg-gray-900 text-white font-sans overflow-x-hidden ${viewport.isSmallScreen ? 'mobile-compact' : 'p-8'}`}>
-      <header className="w-full text-center mb-4 md:mb-8">
+    <main className={`game-grid bg-gray-900 text-white font-sans overflow-hidden ${viewport.isSmallScreen ? 'mobile-compact p-4' : 'p-8'}`}>
+      {/* Title Section */}
+      <header className="w-full text-center">
         <h1 
           className={`game-title font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] text-yellow-400 mobile-title ${titleAnimationClass}`}
           onAnimationEnd={handleTitleAnimationComplete}
@@ -553,8 +554,12 @@ export default function Game() {
         >
           PLAY or PASS?
         </h1>
-        <p className={`game-message text-gray-300 mt-4 text-lg h-8 px-2 ${viewport.isSmallScreen ? 'text-base' : ''}`}>{message}</p>
       </header>
+
+      {/* Game Status Text Section */}
+      <section className="game-status-section">
+        <p className={`game-message text-gray-300 text-lg px-2 ${viewport.isSmallScreen ? 'text-base' : ''}`}>{message}</p>
+      </section>
 
       {installPrompt && (
         <button
@@ -568,6 +573,9 @@ export default function Game() {
         </button>
       )}
 
+      {/* Combined Cards and Player Lives Section */}
+      <section className="relative flex flex-col justify-center gap-4 min-h-0 overflow-hidden">
+        {/* Player Lives */}
       <div className="relative w-full">
         <PlayerList 
           ref={playerScrollContainerRef}
@@ -582,70 +590,75 @@ export default function Game() {
         <div className="absolute top-0 right-0 bottom-0 w-24 bg-gradient-to-l from-gray-900 to-transparent pointer-events-none"></div>
       </div>
 
-      <style jsx global>{`
-        section::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-
-      <section className="card-section relative flex items-center justify-center gap-4 md:gap-8 w-full">
-        <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
-        <div 
-          className={`relative ${viewport.isTinyScreen ? 'w-28' : 'w-40 md:w-52'} aspect-[365/554] cursor-pointer`}
-          onClick={() => setIsSettingsOpen(true)}
-          role="button"
-          aria-label="Open settings"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && setIsSettingsOpen(true)}
-        >
-          <div className="relative w-full h-full rounded-lg flex items-center justify-center shadow-2xl">
-            <img src="/cards/card-back-new.png" alt="Card Back" className="w-full h-full rounded-lg object-cover" />
-          </div>
-        </div>
-        <div className={`relative ${viewport.isTinyScreen ? 'w-28' : 'w-40 md:w-52'} aspect-[365/554]`}>
-          {/* Static pile of discarded cards */}
-          {discardPile.map((card, index) => (
-            <div
-              key={`${card.rank}-${card.suit}-${index}`}
-              className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
-              style={{ zIndex: index }}
+        {/* Cards Container */}
+        <div className="cards-container relative">
+          
+          {/* New aspect ratio container 800x554 */}
+          <div className="cards-aspect-container">
+            
+            {/* Left card - Deck */}
+            <div 
+              className="aspect-card left cursor-pointer z-10"
+              onClick={() => setIsSettingsOpen(true)}
+              role="button"
+              aria-label="Open settings"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setIsSettingsOpen(true)}
             >
-              <img
-                src={getCardImageSrc(card)}
-                alt={`${card.rank} of ${card.suit}`}
-                className="w-full h-full rounded-lg object-cover"
-              />
-            </div>
-          ))}
-
-                      {currentCard && (
-              <div
-                key={cardKey}
-                className={`absolute w-full h-full ${capabilities.shouldReduceEffects ? 'mobile-card-simple' : 'mobile-card-full'}`}
-                style={{ 
-                  zIndex: discardPile.length + 1,
-                  willChange: settings.renderSettings.willChange ? 'transform, opacity' : 'auto',
-                  transform: settings.renderSettings.transform3d ? 'translate3d(0,0,0)' : 'none',
-                  '--card-duration': `${settings.animationDuration.card}ms`
-                } as React.CSSProperties}
-              >
-                <img
-                  src={getCardImageSrc(currentCard)}
-                  alt={`${currentCard.rank} of ${currentCard.suit}`}
-                  className="w-full h-full rounded-lg shadow-lg object-cover"
-                  loading={capabilities.isMobile ? "lazy" : "eager"}
-                />
+              <div className="relative w-full h-full rounded-lg flex items-center justify-center shadow-2xl">
+                <img src="/cards/card-back-new.png" alt="Card Back" className="w-full h-full rounded-lg object-cover" />
               </div>
-            )}
+            </div>
 
-          {!currentCard && discardPile.length === 0 && (
-            <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
-          )}
+            {/* Right card - Discard pile */}
+            <div className="aspect-card right z-10">
+              {/* Static pile of discarded cards */}
+              {discardPile.map((card, index) => (
+                <div
+                  key={`${card.rank}-${card.suit}-${index}`}
+                  className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
+                  style={{ zIndex: index }}
+                >
+                  <img
+                    src={getCardImageSrc(card)}
+                    alt={`${card.rank} of ${card.suit}`}
+                    className="w-full h-full rounded-lg object-cover"
+                  />
+                </div>
+              ))}
+
+              {currentCard && (
+                <div
+                  key={cardKey}
+                  className={`absolute w-full h-full ${capabilities.shouldReduceEffects ? 'mobile-card-simple' : 'mobile-card-full'}`}
+                  style={{ 
+                    zIndex: discardPile.length + 1,
+                    willChange: settings.renderSettings.willChange ? 'transform, opacity' : 'auto',
+                    transform: settings.renderSettings.transform3d ? 'translate3d(0,0,0)' : 'none',
+                    '--card-duration': `${settings.animationDuration.card}ms`
+                  } as React.CSSProperties}
+                >
+                  <img
+                    src={getCardImageSrc(currentCard)}
+                    alt={`${currentCard.rank} of ${currentCard.suit}`}
+                    className="w-full h-full rounded-lg shadow-lg object-cover"
+                    loading={capabilities.isMobile ? "lazy" : "eager"}
+                  />
+                </div>
+              )}
+
+              {!currentCard && discardPile.length === 0 && (
+                <div className="w-full h-full rounded-lg border-2 border-dashed border-gray-400/50"></div>
+              )}
+            </div>
+            
+          </div>
         </div>
       </section>
 
-      <section className={`flex-grow flex items-center justify-center w-full ${viewport.isSmallScreen ? 'mt-4' : 'mt-6'}`}>
-        <div className={`adaptive-buttons flex flex-col items-center justify-center ${viewport.isSmallScreen ? 'gap-2' : 'gap-4'}`}>
+      {/* Buttons Section */}
+      <section className="flex items-center justify-center w-full">
+        <div className="adaptive-buttons flex flex-col items-center justify-center">
 
           {/* --- Row 1: Colour Guess / Keep Change --- */}
           <div className={`${viewport.isSmallScreen ? 'h-12' : 'h-16'} flex items-center justify-center`}>

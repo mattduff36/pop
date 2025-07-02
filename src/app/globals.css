@@ -8,6 +8,23 @@
   --dynamic-vh: 1vh;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  
+  /* Consistent spacing system */
+  --base-gap: 1rem;
+  --title-message-gap: var(--base-gap);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-height: 700px) {
+  :root {
+    --base-gap: 0.75rem;
+  }
+}
+
+@media (max-height: 600px) {
+  :root {
+    --base-gap: 0.5rem;
+  }
 }
 
 /* Calculate real viewport height on mobile */
@@ -23,55 +40,143 @@
   height: calc(var(--dynamic-vh, 1vh) * 100);
 }
 
-/* Adaptive Card Section Heights - Reduced for 90% card size */
-.card-section {
-  height: clamp(14rem, 22vh, 20rem);
+/* Grid-based layout system */
+.game-grid {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--base-gap);
+  height: calc(var(--dynamic-vh, 1vh) * 100);
 }
 
+/* Centered game status text - Fixed height for 2 lines */
+.game-status-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Fixed height equivalent to 2 lines of text */
+  height: 3.5rem; /* ~56px - accounts for 2 lines + line spacing */
+  min-height: 3.5rem;
+  /* Ensure text stays centered vertically */
+  padding: 0.5rem 0;
+}
+
+/* Cards section - fills available space and centers cards */
+.cards-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 2rem);
+  flex: 1;
+  min-height: 0;
+  /* Enable container queries */
+  container-type: size;
+}
+
+/* Responsive gap adjustments for cards */
 @media (max-height: 700px) {
-  .card-section {
-    height: clamp(10rem, 18vh, 14rem);
+  .cards-container {
+    gap: clamp(0.75rem, 3vw, 1.5rem);
   }
 }
 
 @media (max-height: 600px) {
-  .card-section {
-    height: clamp(8rem, 16vh, 12rem);
+  .cards-container {
+    gap: clamp(0.5rem, 2vw, 1rem);
   }
+}
+
+/* Cards aspect ratio container - 800x554 (365+70+365 x 554) */
+.cards-aspect-container {
+  position: relative;
+  aspect-ratio: 800 / 554;
+  
+  /* Default: width-first scaling (for tall containers) */
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  
+  /* Center within the green container */
+  margin: 0 auto;
+  
+  /* Ensure proper containment */
+  overflow: hidden;
+}
+
+/* For wide containers (wider than 800:554), use height-first scaling */
+@container (aspect-ratio > 800/554) {
+  .cards-aspect-container {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+  }
+}
+
+/* Fallback using viewport aspect ratio if container queries not supported */
+@media (aspect-ratio > 800/554) {
+  .cards-aspect-container {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+  }
+}
+
+/* Individual card within the aspect container */
+.aspect-card {
+  position: absolute;
+  top: 0;
+  /* Exact positioning based on 800px width container */
+  width: 45.625%; /* 365/800 = 0.45625 */
+  height: 100%;   /* Full height of container */
+}
+
+/* Left card positioning - undrawn pile */
+.aspect-card.left {
+  left: 0; /* Starts at left edge */
+}
+
+/* Right card positioning - drawn pile */
+.aspect-card.right {
+  right: 0; /* Starts at right edge */
+  /* This creates the 70px gap automatically (100% - 45.625% - 45.625% = 8.75% gap) */
+}
+
+/* Hide scrollbars */
+.player-list::-webkit-scrollbar {
+  display: none;
 }
 
 /* Small Screen Optimizations */
 @media (max-height: 700px) {
-  .mobile-compact {
-    padding: 1rem;
-  }
-  
   .mobile-compact .game-title {
     font-size: 2.5rem;
-    margin-bottom: 1rem;
   }
   
   .mobile-compact .game-message {
     font-size: 1rem;
-    margin-top: 0.5rem;
-    height: 1.5rem;
+  }
+  
+  /* Reduce game status height for smaller screens */
+  .game-status-section {
+    height: 3rem;
+    min-height: 3rem;
   }
 }
 
 @media (max-height: 600px) {
-  .mobile-compact {
-    padding: 0.75rem;
-  }
-  
   .mobile-compact .game-title {
     font-size: 2rem;
-    margin-bottom: 0.5rem;
   }
   
   .mobile-compact .game-message {
     font-size: 0.875rem;
-    margin-top: 0.25rem;
-    height: 1.25rem;
+  }
+  
+  /* Further reduce height for very small screens */
+  .game-status-section {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0.25rem 0;
   }
 }
 
@@ -107,6 +212,24 @@
     width: 4rem;
     height: 4rem;
     font-size: 0.75rem;
+  }
+}
+
+/* Landscape mode button optimizations */
+@media (orientation: landscape) and (max-height: 500px) {
+  .adaptive-buttons {
+    gap: 0.375rem;
+  }
+  
+  .adaptive-buttons button {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+  }
+  
+  .adaptive-buttons .round-button {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 0.6875rem;
   }
 }
 
