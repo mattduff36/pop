@@ -70,6 +70,20 @@ export default function Game() {
   }, [titleFeedback, capabilities.shouldReduceEffects]);
   const heartParticleCount = useMemo(() => settings.particleCount.hearts, [settings.particleCount.hearts]);
 
+  // Check if running in PWA mode
+  const isPWA = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           (window.navigator as any).standalone ||
+           document.referrer.includes('android-app://');
+  }, []);
+
+  // Check if should show install button (mobile browser, not PWA)
+  const shouldShowInstallButton = useMemo(() => {
+    // Show if mobile AND not PWA (even without installPrompt for Safari fallback)
+    return capabilities.isMobile && !isPWA;
+  }, [capabilities.isMobile, isPWA]);
+
   // All hooks must be called before any early returns
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
@@ -154,9 +168,19 @@ export default function Game() {
   }, [playGameStartSound, initialDeck]);
 
   const handleInstallClick = useCallback(() => {
+    playButtonSound();
+    
     if (installPrompt) {
+      // Chrome/Edge: Use native install prompt
       installPrompt.prompt();
-      playButtonSound();
+    } else {
+      // Safari/other browsers: Show manual install instructions
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const instructions = isIOS 
+        ? "To install: Tap the Share button (⬆️) at the bottom of your screen, then tap 'Add to Home Screen'"
+        : "To install: Tap the menu button (⋮) and look for 'Add to Home Screen' or 'Install App'";
+      
+      alert(instructions);
     }
   }, [installPrompt, playButtonSound]);
 
@@ -561,7 +585,7 @@ export default function Game() {
         <p className={`game-message text-gray-300 text-lg px-2 ${viewport.isSmallScreen ? 'text-base' : ''}`}>{message}</p>
       </section>
 
-      {installPrompt && (
+      {shouldShowInstallButton && (
         <button
           onClick={handleInstallClick}
           className="fixed bottom-4 right-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-5 rounded-full shadow-lg z-50"

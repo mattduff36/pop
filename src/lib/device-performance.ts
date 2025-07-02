@@ -30,7 +30,19 @@ export interface PerformanceSettings {
 // Detect device capabilities
 export const detectDeviceCapabilities = (): DeviceCapabilities => {
   const userAgent = navigator.userAgent;
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  
+  // Enhanced mobile detection
+  const isMobile = 
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
+    // Touch device detection
+    (typeof window !== 'undefined' && 'ontouchstart' in window) ||
+    // Screen size detection
+    (typeof window !== 'undefined' && window.innerWidth <= 768) ||
+    // Navigator platform detection
+    /Mobi|Android/i.test(navigator.platform) ||
+    // Additional mobile patterns
+    /Mobile|Tablet|Phone/i.test(userAgent);
+    
   const isIOS = /iPad|iPhone|iPod/.test(userAgent);
   
   // Estimate device performance based on various factors
@@ -58,16 +70,7 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
     maxConcurrentAnimations: isLowEnd ? 2 : (isIOS ? 6 : isMobile ? 4 : 8) // iOS can handle more concurrent animations
   };
 
-  // Debug logging for mobile devices
-  if (isMobile) {
-    console.log('📱 Device Capabilities:', {
-      userAgent,
-      memory,
-      hardwareConcurrency,
-      connectionType,
-      capabilities
-    });
-  }
+
 
   return capabilities;
 };
