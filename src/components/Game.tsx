@@ -269,7 +269,8 @@ export default function Game() {
     if (checkForWinner(newPlayers)) return;
 
     const lostLastLife = playerWhoGuessed.lives <= 0;
-    const shouldAdvance = failureReason === 'SAME_VALUE_TIE' || lostLastLife;
+    // Turn only advances if the player has lost their last life
+    const shouldAdvance = lostLastLife;
 
     let messagePrefix = lostLastLife 
         ? `${playerWhoGuessed.name} is out of lives!`
