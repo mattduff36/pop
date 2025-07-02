@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Player } from "@/lib/types";
-import useAssetPreloader from "@/hooks/useAssetPreloader";
+import useAssetPreloader, { useViewportSize } from "@/hooks/useAssetPreloader";
 
 interface GameSetupProps {
   onGameStart: (players: Player[]) => void;
@@ -25,6 +25,7 @@ export default function GameSetup({
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2"]);
   const { progress, preloadAssets } = useAssetPreloader();
+  const viewport = useViewportSize();
 
   // Start preloading assets when component mounts
   useEffect(() => {
@@ -52,8 +53,8 @@ export default function GameSetup({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4 md:p-8">
-      <div className="flex items-center justify-center gap-4 mb-8">
+    <div className={`game-container flex flex-col items-center justify-center bg-gray-900 text-white ${viewport.isSmallScreen ? 'mobile-compact' : 'p-4 md:p-8'}`}>
+      <div className={`flex items-center justify-center gap-4 ${viewport.isSmallScreen ? 'mb-4' : 'mb-8'}`}>
         {/* Info Icon - Left */}
         <button
           onClick={() => {
@@ -64,13 +65,13 @@ export default function GameSetup({
           aria-label="Show game rules"
           tabIndex={0}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </button>
 
         {/* Title */}
-        <h1 className="text-4xl md:text-5xl font-bold text-yellow-400 text-center font-cinzel">Game Setup</h1>
+        <h1 className={`${viewport.isTinyScreen ? 'text-2xl' : 'text-4xl md:text-5xl'} font-bold text-yellow-400 text-center font-cinzel`}>Game Setup</h1>
 
         {/* Speaker Icon - Right */}
         <button
@@ -83,19 +84,19 @@ export default function GameSetup({
           tabIndex={0}
         >
           {isMuted ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l-5-5m0 5l5-5" />
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
           )}
         </button>
       </div>
       
-      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg w-full max-w-sm md:max-w-lg">
+      <div className={`bg-gray-800 ${viewport.isSmallScreen ? 'p-4' : 'p-6 md:p-8'} rounded-lg shadow-lg w-full max-w-sm md:max-w-lg`}>
         <div className="mb-6">
           <label className="block text-base md:text-lg font-medium text-gray-300 mb-4 text-center">
             Number of Players

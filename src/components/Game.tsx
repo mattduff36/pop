@@ -10,6 +10,7 @@ import { getCardImageSrc } from "@/lib/utils";
 import useAudioManager from "@/hooks/useAudioManager";
 import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
+import { useViewportSize } from "@/hooks/useAssetPreloader";
 
 type GameState =
   | "SETUP"
@@ -54,6 +55,7 @@ export default function Game() {
   const activePlayers = useMemo(() => players.filter(p => p.lives > 0), [players]);
   const capabilities = useMemo(() => detectDeviceCapabilities(), []);
   const settings = useMemo(() => getPerformanceSettings(capabilities), [capabilities]);
+  const viewport = useViewportSize();
 
   // Choose appropriate audio manager based on device capabilities (MUST be before any early returns)
   const mobileAudio = useMobileAudioManager(isMuted);
@@ -537,10 +539,10 @@ export default function Game() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gray-900 text-white font-sans overflow-x-hidden">
-      <header className="w-full text-center mb-8">
+    <main className={`game-container flex flex-col items-center justify-start bg-gray-900 text-white font-sans overflow-x-hidden ${viewport.isSmallScreen ? 'mobile-compact' : 'p-8'}`}>
+      <header className="w-full text-center mb-4 md:mb-8">
         <h1 
-          className={`font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] text-yellow-400 mobile-title ${titleAnimationClass}`}
+          className={`game-title font-cinzel text-4xl md:text-6xl font-bold tracking-widest [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)] text-yellow-400 mobile-title ${titleAnimationClass}`}
           onAnimationEnd={handleTitleAnimationComplete}
           style={{
             willChange: settings.renderSettings.willChange ? 'transform, color' : 'auto',
@@ -551,7 +553,7 @@ export default function Game() {
         >
           PLAY or PASS?
         </h1>
-        <p className="text-gray-300 mt-4 text-lg h-8 px-2">{message}</p>
+        <p className={`game-message text-gray-300 mt-4 text-lg h-8 px-2 ${viewport.isSmallScreen ? 'text-base' : ''}`}>{message}</p>
       </header>
 
       {installPrompt && (
@@ -586,10 +588,10 @@ export default function Game() {
         }
       `}</style>
 
-      <section className="relative flex items-center justify-center gap-4 md:gap-8 h-72 md:h-96 w-full">
+      <section className="card-section relative flex items-center justify-center gap-4 md:gap-8 w-full">
         <div className="absolute w-full h-full bg-green-900/20 rounded-full blur-3xl"></div>
         <div 
-          className="relative w-44 md:w-60 aspect-[365/554] cursor-pointer"
+          className={`relative ${viewport.isTinyScreen ? 'w-28' : 'w-40 md:w-52'} aspect-[365/554] cursor-pointer`}
           onClick={() => setIsSettingsOpen(true)}
           role="button"
           aria-label="Open settings"
@@ -600,7 +602,7 @@ export default function Game() {
             <img src="/cards/card-back-new.png" alt="Card Back" className="w-full h-full rounded-lg object-cover" />
           </div>
         </div>
-        <div className="relative w-44 md:w-60 aspect-[365/554]">
+        <div className={`relative ${viewport.isTinyScreen ? 'w-28' : 'w-40 md:w-52'} aspect-[365/554]`}>
           {/* Static pile of discarded cards */}
           {discardPile.map((card, index) => (
             <div
@@ -642,11 +644,11 @@ export default function Game() {
         </div>
       </section>
 
-      <section className="flex-grow flex items-center justify-center w-full">
-        <div className="flex flex-col items-center justify-center gap-4">
+      <section className={`flex-grow flex items-center justify-center w-full ${viewport.isSmallScreen ? 'mt-4' : 'mt-6'}`}>
+        <div className={`adaptive-buttons flex flex-col items-center justify-center ${viewport.isSmallScreen ? 'gap-2' : 'gap-4'}`}>
 
           {/* --- Row 1: Colour Guess / Keep Change --- */}
-          <div className="h-16 flex items-center justify-center">
+          <div className={`${viewport.isSmallScreen ? 'h-12' : 'h-16'} flex items-center justify-center`}>
             <AnimatePresence mode="wait">
               {gameState === "AWAITING_COLOUR_GUESS" && (
                 <motion.div
@@ -708,14 +710,14 @@ export default function Game() {
           <div className="flex gap-4 items-center">
             <button
               onClick={handlePlay}
-              className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "PLAY_OR_PASS"}
             >
               Play
             </button>
             <button
               onClick={handlePass}
-              className="w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
+              className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
               disabled={gameState !== "PLAY_OR_PASS"}
             >
               Pass
@@ -800,21 +802,6 @@ export default function Game() {
           </AnimatePresence>
         </div>
       </section>
-
-      <footer className="w-full text-center mt-auto pt-4">
-        <p className="text-gray-500 text-sm">
-          &copy; 2025{' '}
-          <a 
-            href="https://mpdee.co.uk" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-gray-400 hover:text-gray-300 transition-colors underline"
-          >
-            mpdee.co.uk
-          </a>
-          {' '}| All rights reserved.
-        </p>
-      </footer>
 
       <AnimatePresence>
         {isSettingsOpen && (

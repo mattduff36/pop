@@ -2,6 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dynamic Viewport Height - Handles iOS Safari toolbar issues */
+:root {
+  --vh: 1vh;
+  --dynamic-vh: 1vh;
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Calculate real viewport height on mobile */
+@supports (height: 100dvh) {
+  :root {
+    --dynamic-vh: 1dvh;
+  }
+}
+
+/* Responsive Game Container Heights */
+.game-container {
+  min-height: calc(var(--dynamic-vh, 1vh) * 100);
+  height: calc(var(--dynamic-vh, 1vh) * 100);
+}
+
+/* Adaptive Card Section Heights - Reduced for 90% card size */
+.card-section {
+  height: clamp(14rem, 22vh, 20rem);
+}
+
+@media (max-height: 700px) {
+  .card-section {
+    height: clamp(10rem, 18vh, 14rem);
+  }
+}
+
+@media (max-height: 600px) {
+  .card-section {
+    height: clamp(8rem, 16vh, 12rem);
+  }
+}
+
+/* Small Screen Optimizations */
+@media (max-height: 700px) {
+  .mobile-compact {
+    padding: 1rem;
+  }
+  
+  .mobile-compact .game-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .mobile-compact .game-message {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    height: 1.5rem;
+  }
+}
+
+@media (max-height: 600px) {
+  .mobile-compact {
+    padding: 0.75rem;
+  }
+  
+  .mobile-compact .game-title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .mobile-compact .game-message {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    height: 1.25rem;
+  }
+}
+
+/* Adaptive Button Sizing */
+.adaptive-buttons {
+  gap: 0.75rem;
+}
+
+@media (max-height: 700px) {
+  .adaptive-buttons button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .adaptive-buttons .round-button {
+    width: 5rem;
+    height: 5rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-height: 600px) {
+  .adaptive-buttons {
+    gap: 0.5rem;
+  }
+  
+  .adaptive-buttons button {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  
+  .adaptive-buttons .round-button {
+    width: 4rem;
+    height: 4rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* iOS Touch Optimizations */
 * {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);

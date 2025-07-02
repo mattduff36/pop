@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 interface PreloadProgress {
   loaded: number;
@@ -230,4 +230,55 @@ const useAssetPreloader = () => {
   return { progress, preloadAssets };
 };
 
-export default useAssetPreloader; 
+export default useAssetPreloader;
+
+export const useViewportSize = () => {
+  const [viewportSize, setViewportSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    isSmallScreen: false,
+    isTinyScreen: false
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateViewportSize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      // Determine screen size categories based on height
+      const isSmallScreen = height <= 700;
+      const isTinyScreen = height <= 600;
+      
+      setViewportSize({
+        width,
+        height,
+        isSmallScreen,
+        isTinyScreen
+      });
+
+      // Update CSS custom property for dynamic viewport height
+      const vh = height * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Set initial value
+    updateViewportSize();
+
+    // Listen for resize events
+    window.addEventListener('resize', updateViewportSize);
+    
+    // Handle orientation change on mobile
+    window.addEventListener('orientationchange', () => {
+      setTimeout(updateViewportSize, 100);
+    });
+
+    return () => {
+      window.removeEventListener('resize', updateViewportSize);
+      window.removeEventListener('orientationchange', updateViewportSize);
+    };
+  }, []);
+
+  return viewportSize;
+}; 
