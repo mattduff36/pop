@@ -328,8 +328,12 @@ export default function Game() {
       console.log('Correct guess - same player keeps turn');
       // Small delay to let card flip sound play first
       setTimeout(() => playCorrectSound(), 100);
-      setGameState("AWAITING_KEEP_OR_CHANGE");
-      setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
+      // Shorter delay for CPU turns, longer for human turns
+      const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+      setTimeout(() => {
+        setGameState("AWAITING_KEEP_OR_CHANGE");
+        setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
+      }, messageDelay);
     } else {
       console.log('Incorrect guess - advancing to next player');
       // Small delay to let card flip sound play first (no life lost on Red/Black incorrect)
@@ -340,8 +344,12 @@ export default function Game() {
       console.log('Next player will be:', players[nextPlayerIndex]);
       setCurrentPlayerIndex(nextPlayerIndex);
       
-      setGameState("AWAITING_KEEP_OR_CHANGE");
-      setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, you decide: keep or change?`);
+      // Shorter delay for CPU turns, longer for human turns
+      const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+      setTimeout(() => {
+        setGameState("AWAITING_KEEP_OR_CHANGE");
+        setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, you decide: keep or change?`);
+      }, messageDelay);
     }
   }, [playButtonSound, drawCard, smoothCardTransition, playCorrectSound, playIncorrectSound, players, currentPlayerIndex, advanceToNextPlayer]);
 
@@ -400,15 +408,20 @@ export default function Game() {
   const handleKeepCard = useCallback(() => {
     playButtonSound();
     setCardJustChanged(false); // Reset flag since we're keeping the current card
-    setGameState("AWAITING_HIGHER_LOWER");
-    if (turnOwnerIndex !== null) {
-      setCurrentPlayerIndex(turnOwnerIndex);
-      setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
-      setTurnOwnerIndex(null);
-    } else {
-      setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. Higher or Lower?`);
-    }
-  }, [playButtonSound, turnOwnerIndex, currentCard, players]);
+    // Shorter delay for CPU turns, longer for human turns
+    const nextPlayerIndex = turnOwnerIndex !== null ? turnOwnerIndex : currentPlayerIndex;
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    setTimeout(() => {
+      setGameState("AWAITING_HIGHER_LOWER");
+      if (turnOwnerIndex !== null) {
+        setCurrentPlayerIndex(turnOwnerIndex);
+        setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
+        setTurnOwnerIndex(null);
+      } else {
+        setMessage(`Card is ${currentCard?.rank} of ${currentCard?.suit}. Higher or Lower?`);
+      }
+    }, messageDelay);
+  }, [playButtonSound, turnOwnerIndex, currentCard, players, currentPlayerIndex]);
 
   const handleChangeCard = useCallback(() => {
     playButtonSound();
@@ -417,16 +430,22 @@ export default function Game() {
 
     setCardJustChanged(true);
     smoothCardTransition(newCard);
-    setGameState("AWAITING_HIGHER_LOWER");
+    
+    // Shorter delay for CPU turns, longer for human turns
+    const nextPlayerIndex = turnOwnerIndex !== null ? turnOwnerIndex : currentPlayerIndex;
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    setTimeout(() => {
+      setGameState("AWAITING_HIGHER_LOWER");
 
-    if (turnOwnerIndex !== null) {
-      setCurrentPlayerIndex(turnOwnerIndex);
-      setMessage(`New card is ${newCard.rank} of ${newCard.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
-      setTurnOwnerIndex(null);
-    } else {
-      setMessage(`New card is ${newCard.rank} of ${newCard.suit}. Higher or Lower?`);
-    }
-  }, [playButtonSound, drawCard, smoothCardTransition, turnOwnerIndex, players]);
+      if (turnOwnerIndex !== null) {
+        setCurrentPlayerIndex(turnOwnerIndex);
+        setMessage(`New card is ${newCard.rank} of ${newCard.suit}. ${players[turnOwnerIndex].name}, your turn. Higher or Lower?`);
+        setTurnOwnerIndex(null);
+      } else {
+        setMessage(`New card is ${newCard.rank} of ${newCard.suit}. Higher or Lower?`);
+      }
+    }, messageDelay);
+  }, [playButtonSound, drawCard, smoothCardTransition, turnOwnerIndex, players, currentPlayerIndex]);
 
   const handleHigherLowerGuess = (guess: 'Higher' | 'Lower') => {
     playButtonSound();
@@ -461,38 +480,51 @@ export default function Game() {
         }
     }
     
-    setMessage(reason);
     smoothCardTransition(newCard);
     
-    if (correct) {
-      // Small delay to let card flip sound play first
-      setTimeout(() => {
-        playCorrectSound();
-        setTitleFeedback('correct');
-      }, 100);
-      setGameState("PLAY_OR_PASS");
-    } else {
-      // For both incorrect guesses and same value ties, play sound with delay to sync with heart animation
-      setTimeout(() => {
-        playIncorrectSound();
-        setTitleFeedback('incorrect');
-      }, 200);
-      setGameState("SHOWING_RESULT");
-    }
+    // Shorter delay for CPU turns, longer for human turns
+    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+    setTimeout(() => {
+      setMessage(reason);
+      
+      if (correct) {
+        // Small delay to let card flip sound play first
+        setTimeout(() => {
+          playCorrectSound();
+          setTitleFeedback('correct');
+        }, 100);
+        setGameState("PLAY_OR_PASS");
+      } else {
+        // For both incorrect guesses and same value ties, play sound with delay to sync with heart animation
+        setTimeout(() => {
+          playIncorrectSound();
+          setTitleFeedback('incorrect');
+        }, 200);
+        setGameState("SHOWING_RESULT");
+      }
+    }, messageDelay);
   };
 
   const handlePlay = useCallback(() => {
     playButtonSound();
-    setGameState("AWAITING_HIGHER_LOWER");
-    setMessage(`Card is ${currentCard?.rank}. Higher or Lower?`);
-  }, [playButtonSound, currentCard]);
+    // Shorter delay for CPU turns, longer for human turns
+    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+    setTimeout(() => {
+      setGameState("AWAITING_HIGHER_LOWER");
+      setMessage(`Card is ${currentCard?.rank}. Higher or Lower?`);
+    }, messageDelay);
+  }, [playButtonSound, currentCard, players, currentPlayerIndex]);
 
   const handlePass = useCallback(() => {
     playButtonSound();
     const nextPlayerIndex = advanceToNextPlayer();
     setCurrentPlayerIndex(nextPlayerIndex);
-    setGameState("AWAITING_HIGHER_LOWER");
-    setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
+    // Shorter delay for CPU turns, longer for human turns
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    setTimeout(() => {
+      setGameState("AWAITING_HIGHER_LOWER");
+      setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
+    }, messageDelay);
   }, [playButtonSound, advanceToNextPlayer, players, currentCard]);
 
   // AI Logic Functions
