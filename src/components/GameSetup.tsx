@@ -153,7 +153,7 @@ export default function GameSetup({
                 className={`
                   relative w-12 h-16 rounded-md border-2 transition-all duration-200 transform hover:scale-105 hover:-translate-y-1
                   ${numPlayers === n 
-                    ? 'bg-white border-yellow-400 text-gray-900 shadow-lg shadow-yellow-400/50' 
+                    ? 'bg-white border-yellow-400 text-red-600 shadow-lg shadow-yellow-400/50' 
                     : 'bg-gray-100 border-gray-400 text-gray-900 hover:bg-white hover:border-gray-300'
                   }
                 `}
@@ -188,7 +188,10 @@ export default function GameSetup({
         </div>
 
         <div className="mb-6">
-            <h2 className="block text-base md:text-lg font-medium text-gray-300 mb-2">Player Names</h2>
+            <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base md:text-lg font-medium text-gray-300">Player Names</h2>
+                <span className="text-sm font-medium text-gray-400">Human/CPU</span>
+            </div>
             <div className="space-y-3 md:space-y-4">
                 {playerNames.map((name, index) => (
                     <div key={index} className="flex items-center gap-3">
@@ -200,58 +203,60 @@ export default function GameSetup({
                         />
                         <button
                             onClick={() => handlePlayerTypeToggle(index)}
-                            className="text-yellow-400 hover:text-yellow-300 transition-colors p-2"
+                            className="relative inline-flex items-center w-16 h-8 rounded-full border-2 border-gray-600 bg-gray-700 transition-all duration-200 hover:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50"
                             aria-label={playerTypes[index] ? "Switch to human" : "Switch to computer"}
                             tabIndex={0}
                         >
-                            {playerTypes[index] ? (
-                                // Robot icon
-                                <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h2v2H9V9zm4 0h2v2h-2V9zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z" />
-                                </svg>
-                            ) : (
-                                // Human icon
-                                <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                            )}
+                            {/* Toggle switch background */}
+                            <div className={`absolute inset-0 rounded-full transition-all duration-200 ${playerTypes[index] ? 'bg-blue-600' : 'bg-green-600'}`}>
+                                {/* Switch handle */}
+                                <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-200 transform ${playerTypes[index] ? 'translate-x-8' : 'translate-x-0.5'}`}>
+                                    {/* Icon inside handle */}
+                                    <div className="flex items-center justify-center w-full h-full">
+                                        {playerTypes[index] ? (
+                                            // Robot icon (CPU on right)
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h2v2H9V9zm4 0h2v2h-2V9zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z" />
+                                            </svg>
+                                        ) : (
+                                            // Human icon (Human on left)
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </button>
                     </div>
                 ))}
             </div>
         </div>
 
-        {/* Asset Loading Progress */}
-        {!progress.isComplete && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">Loading game assets...</span>
-              <span className="text-sm text-gray-300">{progress.percentage}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <motion.div
-                className="bg-yellow-400 h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress.percentage}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-            <div className="text-xs text-gray-400 mt-1">
-              {progress.loaded} of {progress.total} assets loaded
-            </div>
-          </div>
-        )}
-
         <button
           onClick={handleStartGame}
           disabled={!progress.isComplete}
-          className={`w-full py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl transition-all transform ${
+          className={`w-full py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl transition-all transform relative overflow-hidden ${
             progress.isComplete
               ? "bg-green-600 hover:bg-green-700 hover:scale-105 cursor-pointer"
-              : "bg-gray-600 cursor-not-allowed opacity-50"
+              : "bg-gray-600 cursor-not-allowed"
           }`}
         >
-          {progress.isComplete ? "Start Game" : "Loading Assets..."}
+          {/* Progress bar background */}
+          {!progress.isComplete && (
+            <motion.div
+              className="absolute inset-0 bg-yellow-400 opacity-20"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress.percentage}%` }}
+              transition={{ duration: 0.3 }}
+              style={{ left: 0, top: 0, height: '100%' }}
+            />
+          )}
+          
+          {/* Button text */}
+          <span className="relative z-10">
+            {progress.isComplete ? "Start Game" : "Loading..."}
+          </span>
         </button>
       </div>
 
@@ -282,22 +287,22 @@ export default function GameSetup({
                   </div>
                   <div>
                     <h3 className="font-bold text-yellow-500 mb-1">Gameplay</h3>
-                    <ol className="list-decimal list-inside space-y-2">
-                      <li>
+                    <div className="space-y-2">
+                      <div>
                         <span className="font-semibold">Red or Black?</span> Start your turn by guessing the colour of the first card.
                         <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
-                          <li><span className="font-semibold text-green-400">Correct:</span> You decide whether to keep that card or draw a new one.</li>
-                          <li><span className="font-semibold text-red-400">Incorrect:</span> The turn passes to the next player to decide, but then it comes back to you for the next step.</li>
+                          <li><span className="font-semibold text-green-400">Guess Correct:</span> You decide whether to keep that card or draw a new one.</li>
+                          <li><span className="font-semibold text-red-400">Guess Incorrect:</span> The next player in turn chooses whether you keep that card or not.</li>
                         </ul>
-                      </li>
-                      <li>
+                      </div>
+                      <div>
                         <span className="font-semibold">Higher or Lower?</span> Guess if the next card drawn will be higher or lower than the current one.
                         <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
-                          <li><span className="font-semibold text-green-400">Correct:</span> You can either <span className="font-bold">PLAY</span> (guess again on the new card) or <span className="font-bold">PASS</span> the turn to the next player.</li>
-                          <li><span className="font-semibold text-red-400">Incorrect:</span> You lose a life and start your turn over from Step 1.</li>
+                          <li><span className="font-semibold text-green-400">Guess Correct:</span> You can either <span className="font-bold">PLAY</span> (guess again on the new card) or <span className="font-bold">PASS</span> the turn to the next player.</li>
+                          <li><span className="font-semibold text-red-400">Guess Incorrect:</span> You lose a life and start your turn over from Step 1.</li>
                         </ul>
-                      </li>
-                    </ol>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-bold text-yellow-500 mb-1">Key Rules</h3>

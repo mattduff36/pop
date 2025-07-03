@@ -1281,22 +1281,22 @@ export default function Game() {
                       </div>
                       <div>
                         <h3 className="font-bold text-yellow-500 mb-1">Gameplay</h3>
-                        <ol className="list-decimal list-inside space-y-2">
-                          <li>
+                        <div className="space-y-2">
+                          <div>
                             <span className="font-semibold">Red or Black?</span> Start your turn by guessing the colour of the first card.
                             <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
-                              <li><span className="font-semibold text-green-400">Correct:</span> You decide whether to keep that card or draw a new one.</li>
-                              <li><span className="font-semibold text-red-400">Incorrect:</span> The turn passes to the next player to decide, but then it comes back to you for the next step.</li>
+                              <li><span className="font-semibold text-green-400">Guess Correct:</span> You decide whether to keep that card or draw a new one.</li>
+                              <li><span className="font-semibold text-red-400">Guess Incorrect:</span> The next player in turn chooses whether you keep that card or not.</li>
                             </ul>
-                          </li>
-                          <li>
+                          </div>
+                          <div>
                             <span className="font-semibold">Higher or Lower?</span> Guess if the next card drawn will be higher or lower than the current one.
                             <ul className="list-disc list-inside ml-4 mt-1 text-gray-400">
-                              <li><span className="font-semibold text-green-400">Correct:</span> You can either <span className="font-bold">PLAY</span> (guess again on the new card) or <span className="font-bold">PASS</span> the turn to the next player.</li>
-                              <li><span className="font-semibold text-red-400">Incorrect:</span> You lose a life and start your turn over from Step 1.</li>
+                              <li><span className="font-semibold text-green-400">Guess Correct:</span> You can either <span className="font-bold">PLAY</span> (guess again on the new card) or <span className="font-bold">PASS</span> the turn to the next player.</li>
+                              <li><span className="font-semibold text-red-400">Guess Incorrect:</span> You lose a life and start your turn over from Step 1.</li>
                             </ul>
-                          </li>
-                        </ol>
+                          </div>
+                        </div>
                       </div>
                        <div>
                         <h3 className="font-bold text-yellow-500 mb-1">Key Rules</h3>
