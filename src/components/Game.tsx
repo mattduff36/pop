@@ -733,8 +733,8 @@ export default function Game() {
       }
     };
 
-    // Small delay to let the UI update first
-    const timeout = setTimeout(triggerAIDecision, 100);
+    // Delay to let the UI update and show messages before CPU starts thinking
+    const timeout = setTimeout(triggerAIDecision, 800);
     return () => {
       console.log('Clearing trigger timeout');
       clearTimeout(timeout);
