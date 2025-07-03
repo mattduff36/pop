@@ -780,6 +780,12 @@ export default function Game() {
     setGameState("GAME_OVER");
   }, [playButtonSound]);
 
+  // Helper to determine if buttons should be disabled during CPU turns
+  const isButtonsDisabled = useMemo(() => {
+    const isCurrentPlayerAI = players[currentPlayerIndex]?.isComputer || false;
+    return isCurrentPlayerAI || aiThinking;
+  }, [players, currentPlayerIndex, aiThinking]);
+
 
 
   // Render different screens based on game state
@@ -1024,8 +1030,26 @@ export default function Game() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <button onClick={() => handleColourGuess('Red')} className="w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Red</button>
-                  <button onClick={() => handleColourGuess('Black')} className="w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">Black</button>
+                  <button 
+                    onClick={() => handleColourGuess('Red')} 
+                    className={`relative w-32 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg ${isButtonsDisabled ? 'pointer-events-none' : ''}`}
+                    disabled={isButtonsDisabled}
+                  >
+                    <span className={isButtonsDisabled ? 'opacity-50' : ''}>Red</span>
+                    {isButtonsDisabled && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => handleColourGuess('Black')} 
+                    className={`relative w-32 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg ${isButtonsDisabled ? 'pointer-events-none' : ''}`}
+                    disabled={isButtonsDisabled}
+                  >
+                    <span className={isButtonsDisabled ? 'opacity-50' : ''}>Black</span>
+                    {isButtonsDisabled && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+                    )}
+                  </button>
                 </motion.div>
               )}
 
@@ -1039,15 +1063,23 @@ export default function Game() {
                 >
                   <button
                     onClick={handleKeepCard}
-                    className="w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                    className={`relative w-32 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg ${isButtonsDisabled ? 'pointer-events-none' : ''}`}
+                    disabled={isButtonsDisabled}
                   >
-                    Keep
+                    <span className={isButtonsDisabled ? 'opacity-50' : ''}>Keep</span>
+                    {isButtonsDisabled && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+                    )}
                   </button>
                   <button
                     onClick={handleChangeCard}
-                    className="w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg"
+                    className={`relative w-32 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg ${isButtonsDisabled ? 'pointer-events-none' : ''}`}
+                    disabled={isButtonsDisabled}
                   >
-                    Change
+                    <span className={isButtonsDisabled ? 'opacity-50' : ''}>Change</span>
+                    {isButtonsDisabled && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+                    )}
                   </button>
                 </motion.div>
               )}
@@ -1058,17 +1090,23 @@ export default function Game() {
           <div className="flex gap-4">
             <button
               onClick={() => handleHigherLowerGuess('Higher')}
-              className="w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "AWAITING_HIGHER_LOWER" || aiThinking}
+              className={`relative w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100 ${isButtonsDisabled && gameState === "AWAITING_HIGHER_LOWER" ? 'pointer-events-none' : ''}`}
+              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
             >
-              Higher
+              <span>Higher</span>
+              {isButtonsDisabled && gameState === "AWAITING_HIGHER_LOWER" && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+              )}
             </button>
             <button
               onClick={() => handleHigherLowerGuess('Lower')}
-              className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "AWAITING_HIGHER_LOWER" || aiThinking}
+              className={`relative w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100 ${isButtonsDisabled && gameState === "AWAITING_HIGHER_LOWER" ? 'pointer-events-none' : ''}`}
+              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
             >
-              Lower
+              <span>Lower</span>
+              {isButtonsDisabled && gameState === "AWAITING_HIGHER_LOWER" && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg"></div>
+              )}
             </button>
           </div>
 
@@ -1076,17 +1114,23 @@ export default function Game() {
           <div className="flex gap-4 items-center">
             <button
               onClick={handlePlay}
-              className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "PLAY_OR_PASS" || aiThinking}
+              className={`relative round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100 ${isButtonsDisabled && gameState === "PLAY_OR_PASS" ? 'pointer-events-none' : ''}`}
+              disabled={gameState !== "PLAY_OR_PASS"}
             >
-              Play
+              <span>Play</span>
+              {isButtonsDisabled && gameState === "PLAY_OR_PASS" && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full"></div>
+              )}
             </button>
             <button
               onClick={handlePass}
-              className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "PLAY_OR_PASS" || aiThinking}
+              className={`relative round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100 ${isButtonsDisabled && gameState === "PLAY_OR_PASS" ? 'pointer-events-none' : ''}`}
+              disabled={gameState !== "PLAY_OR_PASS"}
             >
-              Pass
+              <span>Pass</span>
+              {isButtonsDisabled && gameState === "PLAY_OR_PASS" && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full"></div>
+              )}
             </button>
           </div>
 
