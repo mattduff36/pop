@@ -24,4 +24,13 @@ export interface Player {
   id: string;
   name: string;
   lives: number;
+  isComputer: boolean;
+}
+
+export type AIDifficulty = "easy" | "medium" | "hard";
+
+export interface AIDecision {
+  choice: string;
+  delay: number;
+  confidence: number;
 } 

@@ -23,7 +23,8 @@ export default function GameSetup({
   playButtonSound 
 }: GameSetupProps) {
   const [numPlayers, setNumPlayers] = useState(2);
-  const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2"]);
+  const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "CPU 2"]);
+  const [playerTypes, setPlayerTypes] = useState<boolean[]>([false, true]); // false = human, true = computer
   const { progress, preloadAssets } = useAssetPreloader();
   const viewport = useViewportSize();
 
@@ -34,7 +35,20 @@ export default function GameSetup({
 
   const handleNumPlayersChange = (count: number) => {
     setNumPlayers(count);
-    setPlayerNames(Array.from({ length: count }, (_, i) => playerNames[i] || `Player ${i + 1}`));
+    const newTypes = Array.from({ length: count }, (_, i) => {
+      // First player defaults to human, others to computer
+      if (i === 0) return false;
+      return playerTypes[i] !== undefined ? playerTypes[i] : true;
+    });
+    const newNames = Array.from({ length: count }, (_, i) => {
+      // If we already have a name for this player, keep it
+      if (playerNames[i]) return playerNames[i];
+      // Otherwise, set default name based on type
+      const isComputer = newTypes[i];
+      return isComputer ? `CPU ${i + 1}` : `Player ${i + 1}`;
+    });
+    setPlayerNames(newNames);
+    setPlayerTypes(newTypes);
   };
 
   const handleNameChange = (index: number, name: string) => {
@@ -43,11 +57,38 @@ export default function GameSetup({
     setPlayerNames(newNames);
   };
 
+  const handlePlayerTypeToggle = (index: number) => {
+    const newTypes = [...playerTypes];
+    const newNames = [...playerNames];
+    const wasComputer = newTypes[index];
+    const willBeComputer = !wasComputer;
+    
+    newTypes[index] = willBeComputer;
+    
+    // Update name only if it matches the default pattern
+    const currentName = newNames[index];
+    const defaultHumanName = `Player ${index + 1}`;
+    const defaultComputerName = `CPU ${index + 1}`;
+    
+    if (willBeComputer && currentName === defaultHumanName) {
+      // Switching to computer and has default human name
+      newNames[index] = defaultComputerName;
+    } else if (!willBeComputer && currentName === defaultComputerName) {
+      // Switching to human and has default computer name
+      newNames[index] = defaultHumanName;
+    }
+    
+    setPlayerTypes(newTypes);
+    setPlayerNames(newNames);
+    playButtonSound();
+  };
+
   const handleStartGame = () => {
     const players: Player[] = playerNames.map((name, index) => ({
       id: `${index + 1}`,
       name: name.trim() || `Player ${index + 1}`,
       lives: 4,
+      isComputer: playerTypes[index],
     }));
     onGameStart(players);
   };
@@ -150,13 +191,32 @@ export default function GameSetup({
             <h2 className="block text-base md:text-lg font-medium text-gray-300 mb-2">Player Names</h2>
             <div className="space-y-3 md:space-y-4">
                 {playerNames.map((name, index) => (
-                    <input
-                        key={index}
-                        type="text"
-                        value={name}
-                        onChange={(e) => handleNameChange(index, e.target.value)}
-                        className="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
-                    />
+                    <div key={index} className="flex items-center gap-3">
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => handleNameChange(index, e.target.value)}
+                            className="flex-1 p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
+                        />
+                        <button
+                            onClick={() => handlePlayerTypeToggle(index)}
+                            className="text-yellow-400 hover:text-yellow-300 transition-colors p-2"
+                            aria-label={playerTypes[index] ? "Switch to human" : "Switch to computer"}
+                            tabIndex={0}
+                        >
+                            {playerTypes[index] ? (
+                                // Robot icon
+                                <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h2v2H9V9zm4 0h2v2h-2V9zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z" />
+                                </svg>
+                            ) : (
+                                // Human icon
+                                <svg xmlns="http://www.w3.org/2000/svg" className={`${viewport.isTinyScreen ? 'h-6 w-6' : 'h-8 w-8 md:h-10 md:w-10'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            )}
+                        </button>
+                    </div>
                 ))}
             </div>
         </div>

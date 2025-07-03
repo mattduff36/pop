@@ -36,8 +36,15 @@ const PlayerList = memo(forwardRef<HTMLDivElement, PlayerListProps>(
                   : "border-gray-600 bg-gray-800"
               }`}
             >
-              <h2 className="text-sm font-semibold truncate">{player.name}</h2>
-              <p className="text-base mt-1">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <h2 className="text-sm font-semibold truncate">{player.name}</h2>
+                {player.isComputer && (
+                  <div className="w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-gray-900 rounded-full"></div>
+                  </div>
+                )}
+              </div>
+              <p className="text-base">{player.lives > 0 ? "❤️".repeat(player.lives) : "💀"}</p>
             </motion.div>
           ))}
         </AnimatePresence>

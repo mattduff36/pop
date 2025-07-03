@@ -11,6 +11,7 @@ import useAudioManager from "@/hooks/useAudioManager";
 import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
 import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
 import { useViewportSize } from "@/hooks/useAssetPreloader";
+import { AIPlayer } from "@/lib/ai-player";
 
 type GameState =
   | "SETUP"
@@ -47,9 +48,19 @@ export default function Game() {
   const [isMuted, setIsMuted] = useState(false);
   const [winnerName, setWinnerName] = useState<string>("");
   const [isLandscape, setIsLandscape] = useState(false);
+  const [aiPlayers, setAiPlayers] = useState<Map<string, AIPlayer>>(new Map());
+  const [aiThinking, setAiThinking] = useState<boolean>(false);
+  const [aiTimeout, setAiTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [cardJustChanged, setCardJustChanged] = useState(false);
+  const currentCardRef = useRef<Card | null>(null);
 
   const playerScrollContainerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Keep currentCardRef in sync with currentCard state
+  useEffect(() => {
+    currentCardRef.current = currentCard;
+  }, [currentCard]);
 
   // ALL memoized values MUST be at the top before any other logic  
   const initialDeck = useMemo(() => createDeck(), []);
@@ -193,12 +204,24 @@ export default function Game() {
     setDeck(shuffleDeck([...initialDeck]));
     setCurrentCard(null);
     
-    const startingPlayer = Math.floor(Math.random() * players.length);
-    setCurrentPlayerIndex(startingPlayer);
-
+    // Initialize AI players
+    const aiPlayerMap = new Map<string, AIPlayer>();
+    players.forEach(player => {
+      if (player.isComputer) {
+        aiPlayerMap.set(player.id, new AIPlayer("medium"));
+      }
+    });
+    setAiPlayers(aiPlayerMap);
+    
+    // Always start with the first human player
+    const startingPlayerIndex = players.findIndex(player => !player.isComputer);
+    // If no human players found, start with first player
+    const actualStartingIndex = startingPlayerIndex >= 0 ? startingPlayerIndex : 0;
+    
+    setCurrentPlayerIndex(actualStartingIndex);
     setGameStarted(true);
     setGameState("AWAITING_COLOUR_GUESS");
-    setMessage(`${players[startingPlayer].name}, is the first card Red or Black?`);
+    setMessage(`${players[actualStartingIndex].name}, is the first card Red or Black?`);
   }, [playGameStartSound, initialDeck]);
 
   const handleInstallClick = useCallback(() => {
@@ -239,6 +262,9 @@ export default function Game() {
   };
 
   const smoothCardTransition = (newCard: Card) => {
+    console.log('smoothCardTransition called with newCard:', newCard);
+    console.log('Current card before transition:', currentCard);
+    
     // If there's a current card, move it to discard pile first
     if (currentCard) {
       setDiscardPile(prev => [...prev, currentCard]);
@@ -246,9 +272,13 @@ export default function Game() {
     
     // Adaptive delay based on device capabilities
     const delay = capabilities.shouldReduceEffects ? 100 : 150;
+    console.log('Setting card transition delay:', delay);
     setTimeout(() => {
+      console.log('Card transition executing - setting currentCard to:', newCard);
       setCurrentCard(newCard);
+      currentCardRef.current = newCard; // Update ref immediately
       setCardKey(prev => prev + 1);
+      console.log('Card transition completed, ref updated to:', currentCardRef.current);
     }, delay);
   };
 
@@ -279,6 +309,9 @@ export default function Game() {
   }, [currentPlayerIndex, players]);
 
   const handleColourGuess = useCallback((guess: "Red" | "Black") => {
+    console.log('handleColourGuess called with guess:', guess);
+    console.log('Current player making guess:', players[currentPlayerIndex]);
+    
     playButtonSound();
     const nextCard = drawCard();
     if (!nextCard) return;
@@ -286,18 +319,25 @@ export default function Game() {
     const isRed = nextCard.suit === "Hearts" || nextCard.suit === "Diamonds";
     const isGuessCorrect = (guess === "Red" && isRed) || (guess === "Black" && !isRed);
     
+    console.log('Card drawn:', nextCard);
+    console.log('Is guess correct?', isGuessCorrect);
+    
     smoothCardTransition(nextCard);
 
     if (isGuessCorrect) {
+      console.log('Correct guess - same player keeps turn');
       // Small delay to let card flip sound play first
       setTimeout(() => playCorrectSound(), 100);
       setGameState("AWAITING_KEEP_OR_CHANGE");
       setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
     } else {
+      console.log('Incorrect guess - advancing to next player');
       // Small delay to let card flip sound play first (no life lost on Red/Black incorrect)
       setTimeout(() => playIncorrectSound(), 100);
       setTurnOwnerIndex(currentPlayerIndex);
       const nextPlayerIndex = advanceToNextPlayer();
+      console.log('Turn advancing from player', currentPlayerIndex, 'to player', nextPlayerIndex);
+      console.log('Next player will be:', players[nextPlayerIndex]);
       setCurrentPlayerIndex(nextPlayerIndex);
       
       setGameState("AWAITING_KEEP_OR_CHANGE");
@@ -359,6 +399,7 @@ export default function Game() {
 
   const handleKeepCard = useCallback(() => {
     playButtonSound();
+    setCardJustChanged(false); // Reset flag since we're keeping the current card
     setGameState("AWAITING_HIGHER_LOWER");
     if (turnOwnerIndex !== null) {
       setCurrentPlayerIndex(turnOwnerIndex);
@@ -374,6 +415,7 @@ export default function Game() {
     const newCard = drawCard();
     if (!newCard) return;
 
+    setCardJustChanged(true);
     smoothCardTransition(newCard);
     setGameState("AWAITING_HIGHER_LOWER");
 
@@ -453,12 +495,259 @@ export default function Game() {
     setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
   }, [playButtonSound, advanceToNextPlayer, players, currentCard]);
 
+  // AI Logic Functions
+  const isCurrentPlayerAI = useCallback(() => {
+    return players[currentPlayerIndex]?.isComputer || false;
+  }, [players, currentPlayerIndex]);
+
+  const clearAITimeout = useCallback(() => {
+    if (aiTimeout) {
+      console.log('Clearing AI timeout');
+      clearTimeout(aiTimeout);
+      setAiTimeout(null);
+    }
+  }, [aiTimeout]);
+
+  // Use a ref to avoid dependency issues
+  const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const clearAITimeoutRef = useCallback(() => {
+    if (aiTimeoutRef.current) {
+      console.log('Clearing AI timeout (ref)');
+      clearTimeout(aiTimeoutRef.current);
+      aiTimeoutRef.current = null;
+      setAiTimeout(null);
+    }
+  }, []);
+
+  const handleAIDecision = useCallback((decision: string, delay: number, callback: () => void, decisionMessage?: string) => {
+    console.log(`AI Decision: ${decision}, Delay: ${delay}ms`);
+    clearAITimeoutRef();
+    setAiThinking(true);
+    
+    const timeout = setTimeout(() => {
+      console.log(`AI decision made: ${decision}, showing decision to user`);
+      setAiThinking(false);
+      
+      // Show the decision message if provided
+      if (decisionMessage) {
+        setMessage(decisionMessage);
+      }
+      
+      // Add delay for user to read the decision before executing
+      const displayDelay = 1500 + Math.random() * 1000; // 1.5-2.5 seconds to read decision
+      console.log(`AI decision display delay: ${displayDelay}ms`);
+      
+      const executeTimeout = setTimeout(() => {
+        console.log(`AI executing decision: ${decision}`);
+        aiTimeoutRef.current = null;
+        setAiTimeout(null);
+        try {
+          callback();
+        } catch (error) {
+          console.error('Error executing AI decision:', error);
+        }
+      }, displayDelay);
+      
+      aiTimeoutRef.current = executeTimeout;
+      setAiTimeout(executeTimeout);
+    }, delay);
+    
+    console.log('Setting AI timeout:', timeout);
+    aiTimeoutRef.current = timeout;
+    setAiTimeout(timeout);
+  }, [clearAITimeoutRef]);
+
+  const processAIColorGuess = useCallback(() => {
+    if (!isCurrentPlayerAI()) return;
+    
+    const currentPlayer = players[currentPlayerIndex];
+    const aiPlayer = aiPlayers.get(currentPlayer.id);
+    
+    if (aiPlayer) {
+      const decision = aiPlayer.makeColorGuess();
+      const thinkingMessage = `${currentPlayer.name} is thinking... ${aiPlayer.getThinkingMessage("color")}`;
+      setMessage(thinkingMessage);
+      
+      handleAIDecision(decision.choice, decision.delay, () => {
+        handleColourGuess(decision.choice as "Red" | "Black");
+      }, `${currentPlayer.name} guesses ${decision.choice}!`);
+    }
+  }, [isCurrentPlayerAI, players, currentPlayerIndex, aiPlayers, handleAIDecision, handleColourGuess]);
+
+  const processAIKeepOrChange = useCallback(() => {
+    console.log('processAIKeepOrChange called');
+    console.log('currentCard (state):', currentCard);
+    console.log('currentCard (ref):', currentCardRef.current);
+    console.log('currentPlayerIndex:', currentPlayerIndex);
+    console.log('turnOwnerIndex:', turnOwnerIndex);
+    console.log('players[currentPlayerIndex]:', players[currentPlayerIndex]);
+    console.log('turnOwnerIndex player:', turnOwnerIndex !== null ? players[turnOwnerIndex] : 'null');
+    
+    const cardToUse = currentCardRef.current;
+    if (!cardToUse) {
+      console.log('No current card in ref, returning - this should not happen after delay fix');
+      return;
+    }
+    
+    // Determine who should make the keep/change decision
+    // If turnOwnerIndex is set, that player made the guess and someone else makes the decision
+    // If turnOwnerIndex is null, the current player made the guess and makes the decision
+    const decisionMakerIndex = currentPlayerIndex;
+    const decisionMaker = players[decisionMakerIndex];
+    
+    console.log('decisionMakerIndex:', decisionMakerIndex);
+    console.log('decisionMaker:', decisionMaker);
+    console.log('Is decision maker AI?', decisionMaker?.isComputer);
+    
+    // Check if the decision maker is AI
+    if (!decisionMaker?.isComputer) {
+      console.log('Decision maker is not AI, returning');
+      return;
+    }
+    
+    const aiPlayer = aiPlayers.get(decisionMaker.id);
+    console.log('aiPlayer found:', !!aiPlayer);
+    
+    if (aiPlayer) {
+      const decision = aiPlayer.makeKeepOrChangeDecision(cardToUse);
+      const thinkingMessage = `${decisionMaker.name} is thinking... ${aiPlayer.getThinkingMessage("keep")}`;
+      console.log('AI decision:', decision);
+      setMessage(thinkingMessage);
+      
+      handleAIDecision(decision.choice, decision.delay, () => {
+        console.log('Executing keep/change decision:', decision.choice);
+        if (decision.choice === "Keep") {
+          handleKeepCard();
+        } else {
+          handleChangeCard();
+        }
+      }, `${decisionMaker.name} decides to ${decision.choice} the card.`);
+    }
+  }, [players, currentPlayerIndex, aiPlayers, handleAIDecision, handleKeepCard, handleChangeCard]); // Remove currentCard from deps to avoid closure capture
+
+  const processAIHigherLower = useCallback(() => {
+    if (!isCurrentPlayerAI()) return;
+    
+    const cardToUse = currentCardRef.current;
+    if (!cardToUse) return;
+    
+    const currentPlayer = players[currentPlayerIndex];
+    const aiPlayer = aiPlayers.get(currentPlayer.id);
+    
+    if (aiPlayer) {
+      const decision = aiPlayer.makeHigherLowerGuess(cardToUse);
+      const thinkingMessage = `${currentPlayer.name} is thinking... ${aiPlayer.getThinkingMessage("higher")}`;
+      setMessage(thinkingMessage);
+      
+      handleAIDecision(decision.choice, decision.delay, () => {
+        handleHigherLowerGuess(decision.choice as "Higher" | "Lower");
+      }, `${currentPlayer.name} guesses ${decision.choice}!`);
+    }
+  }, [isCurrentPlayerAI, players, currentPlayerIndex, aiPlayers, handleAIDecision, handleHigherLowerGuess]); // Remove currentCard from deps
+
+  const processAIPlayOrPass = useCallback(() => {
+    if (!isCurrentPlayerAI()) return;
+    
+    const cardToUse = currentCardRef.current;
+    if (!cardToUse) return;
+    
+    const currentPlayer = players[currentPlayerIndex];
+    const aiPlayer = aiPlayers.get(currentPlayer.id);
+    
+    if (aiPlayer) {
+      const decision = aiPlayer.makePlayOrPassDecision(cardToUse, currentPlayer.lives, players.length);
+      const thinkingMessage = `${currentPlayer.name} is thinking... ${aiPlayer.getThinkingMessage("play")}`;
+      setMessage(thinkingMessage);
+      
+      handleAIDecision(decision.choice, decision.delay, () => {
+        if (decision.choice === "Play") {
+          handlePlay();
+        } else {
+          handlePass();
+        }
+      }, `${currentPlayer.name} chooses to ${decision.choice}!`);
+    }
+  }, [isCurrentPlayerAI, players, currentPlayerIndex, aiPlayers, handleAIDecision, handlePlay, handlePass]); // Remove currentCard from deps
+
+  // Cleanup AI timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearAITimeoutRef();
+    };
+  }, [clearAITimeoutRef]);
+
+  // Trigger AI decisions when game state changes
+  useEffect(() => {
+    console.log('AI trigger useEffect:', { gameState, currentPlayerIndex, aiThinking });
+    console.log('Current player:', players[currentPlayerIndex]);
+    console.log('Is current player AI?', players[currentPlayerIndex]?.isComputer);
+    
+    if (aiThinking) {
+      console.log('AI already thinking, skipping');
+      return; // Don't process if AI is already thinking
+    }
+    
+    // Check if current player is actually AI
+    if (!players[currentPlayerIndex]?.isComputer) {
+      console.log('Current player is not AI, skipping AI logic');
+      return;
+    }
+    
+    const triggerAIDecision = () => {
+      console.log('triggerAIDecision called for state:', gameState);
+      switch (gameState) {
+        case "AWAITING_COLOUR_GUESS":
+          console.log('Triggering color guess');
+          processAIColorGuess();
+          break;
+        case "AWAITING_KEEP_OR_CHANGE":
+          console.log('Triggering keep/change');
+          // Wait for card transition to complete before AI makes decision
+          const cardTransitionDelay = capabilities.shouldReduceEffects ? 100 : 150;
+          setTimeout(() => {
+            console.log('Card transition delay completed, triggering AI decision...');
+            processAIKeepOrChange();
+          }, cardTransitionDelay + 100); // Add 100ms buffer for safety
+          break;
+        case "AWAITING_HIGHER_LOWER":
+          console.log('Triggering higher/lower');
+          if (cardJustChanged) {
+            console.log('Card just changed, waiting for transition');
+            const cardTransitionDelay = capabilities.shouldReduceEffects ? 100 : 150;
+            setTimeout(() => {
+              setCardJustChanged(false);
+              processAIHigherLower();
+            }, cardTransitionDelay + 100);
+          } else {
+            processAIHigherLower();
+          }
+          break;
+        case "PLAY_OR_PASS":
+          console.log('Triggering play/pass');
+          processAIPlayOrPass();
+          break;
+        default:
+          console.log('No AI action for state:', gameState);
+          break;
+      }
+    };
+
+    // Small delay to let the UI update first
+    const timeout = setTimeout(triggerAIDecision, 100);
+    return () => {
+      console.log('Clearing trigger timeout');
+      clearTimeout(timeout);
+    };
+  }, [gameState, currentPlayerIndex]); // Remove aiThinking from dependencies to prevent re-triggering
+
   const handleToggleMute = useCallback(() => {
     setIsMuted(prev => !prev);
   }, []);
 
   const handlePlayAgain = useCallback(() => {
     playButtonSound();
+    clearAITimeoutRef();
     setIsLoading(true);
     setGameStarted(false);
     setGameState("SETUP");
@@ -467,6 +756,7 @@ export default function Game() {
     setDeck([]);
     setDiscardPile([]);
     setCurrentCard(null);
+    currentCardRef.current = null; // Reset ref as well
     setCardKey(0);
     setCurrentPlayerIndex(0);
     setTurnOwnerIndex(null);
@@ -474,8 +764,11 @@ export default function Game() {
     setFailureReason(null);
     setHeartPopAnimation(null);
     setWinnerName("");
+    setAiPlayers(new Map());
+    setAiThinking(false);
+    setCardJustChanged(false);
     setTimeout(() => setIsLoading(false), 500);
-  }, [playButtonSound]);
+  }, [playButtonSound, clearAITimeoutRef]);
 
   const handleShowCredits = useCallback(() => {
     playButtonSound();
@@ -486,6 +779,8 @@ export default function Game() {
     playButtonSound();
     setGameState("GAME_OVER");
   }, [playButtonSound]);
+
+
 
   // Render different screens based on game state
   if (isLoading) {
@@ -721,7 +1016,7 @@ export default function Game() {
           {/* --- Row 1: Colour Guess / Keep Change --- */}
           <div className={`${viewport.isSmallScreen ? 'h-12' : 'h-16'} flex items-center justify-center`}>
             <AnimatePresence mode="wait">
-              {gameState === "AWAITING_COLOUR_GUESS" && (
+              {gameState === "AWAITING_COLOUR_GUESS" && !aiThinking && (
                 <motion.div
                   key="colour-guess"
                   className="flex gap-4 will-change-transform"
@@ -734,7 +1029,7 @@ export default function Game() {
                 </motion.div>
               )}
 
-              {gameState === "AWAITING_KEEP_OR_CHANGE" && (
+              {gameState === "AWAITING_KEEP_OR_CHANGE" && !aiThinking && (
                 <motion.div
                   key="keep-change"
                   className="flex gap-4 will-change-transform"
@@ -764,14 +1059,14 @@ export default function Game() {
             <button
               onClick={() => handleHigherLowerGuess('Higher')}
               className="w-32 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
+              disabled={gameState !== "AWAITING_HIGHER_LOWER" || aiThinking}
             >
               Higher
             </button>
             <button
               onClick={() => handleHigherLowerGuess('Lower')}
               className="w-32 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "AWAITING_HIGHER_LOWER"}
+              disabled={gameState !== "AWAITING_HIGHER_LOWER" || aiThinking}
             >
               Lower
             </button>
@@ -782,14 +1077,14 @@ export default function Game() {
             <button
               onClick={handlePlay}
               className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-teal-500 hover:bg-teal-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "PLAY_OR_PASS"}
+              disabled={gameState !== "PLAY_OR_PASS" || aiThinking}
             >
               Play
             </button>
             <button
               onClick={handlePass}
               className="round-button w-28 h-28 rounded-full flex items-center justify-center text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none disabled:hover:scale-100"
-              disabled={gameState !== "PLAY_OR_PASS"}
+              disabled={gameState !== "PLAY_OR_PASS" || aiThinking}
             >
               Pass
             </button>
