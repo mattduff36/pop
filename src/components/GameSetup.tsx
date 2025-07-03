@@ -94,7 +94,15 @@ export default function GameSetup({
   };
 
   return (
-    <div className={`game-container flex flex-col items-center justify-center bg-gray-900 text-white ${viewport.isSmallScreen ? 'mobile-compact' : 'p-4 md:p-8'}`}>
+    <div 
+      className={`game-container flex flex-col items-center justify-center bg-gray-900 text-white ${viewport.isSmallScreen ? 'mobile-compact' : 'p-4 md:p-8'}`}
+      style={{
+        // Move content up by half the safe area inset to visually center it on mobile
+        transform: viewport.isSmallScreen ? 'translateY(calc(-0.5 * env(safe-area-inset-top, 0px)))' : 'none',
+        minHeight: '100vh',
+        minHeight: '100dvh', // Use dynamic viewport height on supported browsers
+      }}
+    >
       <div className={`flex items-center justify-center gap-4 ${viewport.isSmallScreen ? 'mb-4' : 'mb-8'}`}>
         {/* Info Icon - Left */}
         <button
@@ -137,9 +145,9 @@ export default function GameSetup({
         </button>
       </div>
       
-      <div className={`bg-gray-800 ${viewport.isSmallScreen ? 'p-4' : 'p-6 md:p-8'} rounded-lg shadow-lg w-full max-w-sm md:max-w-lg`}>
-        <div className="mb-6">
-          <label className="block text-base md:text-lg font-medium text-gray-300 mb-4 text-center">
+      <div className={`bg-gray-800 ${viewport.isSmallScreen ? 'p-4' : numPlayers >= 5 ? 'p-4 md:p-6' : 'p-6 md:p-8'} rounded-lg shadow-lg w-full ${numPlayers >= 5 ? 'max-w-sm md:max-w-md' : 'max-w-sm md:max-w-lg'}`}>
+        <div className={`${numPlayers >= 5 ? 'mb-4' : 'mb-6'}`}>
+          <label className={`block text-base md:text-lg font-medium text-gray-300 ${numPlayers >= 5 ? 'mb-2' : 'mb-4'} text-center`}>
             Number of Players
           </label>
           <div className="flex justify-center gap-2">
@@ -187,19 +195,19 @@ export default function GameSetup({
           </div>
         </div>
 
-        <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
+        <div className={`${numPlayers >= 5 ? 'mb-4' : 'mb-6'}`}>
+            <div className={`flex items-center justify-between ${numPlayers >= 5 ? 'mb-1' : 'mb-2'}`}>
                 <h2 className="text-base md:text-lg font-medium text-gray-300">Player Names</h2>
                 <span className="text-sm font-medium text-gray-400">Human/CPU</span>
             </div>
-            <div className="space-y-3 md:space-y-4">
+            <div className={`${numPlayers >= 5 ? 'space-y-2' : 'space-y-3 md:space-y-4'}`}>
                 {playerNames.map((name, index) => (
                     <div key={index} className="flex items-center gap-3">
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => handleNameChange(index, e.target.value)}
-                            className="flex-1 p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg"
+                            className={`flex-1 ${numPlayers >= 5 ? 'p-2.5' : 'p-3'} bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-base md:text-lg`}
                         />
                         <button
                             onClick={() => handlePlayerTypeToggle(index)}
@@ -236,7 +244,7 @@ export default function GameSetup({
         <button
           onClick={handleStartGame}
           disabled={!progress.isComplete}
-          className={`w-full py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl transition-all transform relative overflow-hidden ${
+          className={`w-full ${numPlayers >= 5 ? 'py-2.5 md:py-3' : 'py-3 md:py-4'} rounded-lg font-bold text-lg md:text-xl transition-all transform relative overflow-hidden ${
             progress.isComplete
               ? "bg-green-600 hover:bg-green-700 hover:scale-105 cursor-pointer"
               : "bg-gray-600 cursor-not-allowed"
