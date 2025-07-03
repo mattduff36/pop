@@ -99,8 +99,7 @@ export default function GameSetup({
       style={{
         // Move content up by half the safe area inset to visually center it on mobile
         transform: viewport.isSmallScreen ? 'translateY(calc(-0.5 * env(safe-area-inset-top, 0px)))' : 'none',
-        minHeight: '100vh',
-        minHeight: '100dvh', // Use dynamic viewport height on supported browsers
+        minHeight: '100dvh', // Use dynamic viewport height with fallback
       }}
     >
       <div className={`flex items-center justify-center gap-4 ${viewport.isSmallScreen ? 'mb-4' : 'mb-8'}`}>
