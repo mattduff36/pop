@@ -799,7 +799,7 @@ export default function Game() {
       console.log('Clearing trigger timeout');
       clearTimeout(timeout);
     };
-  }, [gameState, currentPlayerIndex, aiThinking, players, capabilities, cardJustChanged, processAIColorGuess, processAIKeepOrChange, processAIHigherLower, processAIPlayOrPass]); // Added missing dependencies for completeness
+  }, [gameState, currentPlayerIndex, players, capabilities, cardJustChanged, processAIColorGuess, processAIKeepOrChange, processAIHigherLower, processAIPlayOrPass]); // Removed aiThinking to prevent infinite loop
 
   const handleToggleMute = useCallback(() => {
     setIsMuted(prev => !prev);
