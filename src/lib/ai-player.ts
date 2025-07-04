@@ -215,8 +215,17 @@ export class AIPlayer {
       return { choice: "Pass", delay, confidence: 0.8 };
     }
     
-    let playProbability = this.personality.playAgainThreshold;
     const cardValue = currentCard.value;
+    
+    // Hidden rule: CPU can only PLAY if card is one of the 2 highest or 2 lowest cards
+    // (2, 3, King=13, Ace=14)
+    const isPlayableCard = cardValue === 2 || cardValue === 3 || cardValue === 13 || cardValue === 14;
+    if (!isPlayableCard) {
+      const delay = 800 + Math.random() * 1200;
+      return { choice: "Pass", delay, confidence: 0.7 };
+    }
+    
+    let playProbability = this.personality.playAgainThreshold;
     
     // Calculate expected value of continuing vs passing
     let successProbability = 0.5; // Basic 50/50 for unknown cards
