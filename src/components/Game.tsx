@@ -122,8 +122,8 @@ export default function Game() {
 
   // All hooks must be called before any early returns
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
-    return () => clearTimeout(timer);
+    // Remove fake loading delay - no need to simulate loading time
+    setIsLoading(false);
   }, []);
 
   // Set viewport height CSS custom property for mobile safari (client-side only)
@@ -257,8 +257,8 @@ export default function Game() {
 
   const drawCard = (playSound: boolean = true) => {
     if (playSound) {
-      // Small delay to let button sound play first
-      setTimeout(() => playCardFlipSound(), 50);
+      // Reduced delay for faster responsiveness
+      setTimeout(() => playCardFlipSound(), 25);
     }
     if (deck.length > 0) {
       const newDeck = [...deck];
@@ -284,16 +284,14 @@ export default function Game() {
       setDiscardPile(prev => [...prev, currentCard]);
     }
     
-    // Adaptive delay based on device capabilities
-    const delay = capabilities.shouldReduceEffects ? 100 : 150;
-    console.log('Setting card transition delay:', delay);
-    setTimeout(() => {
+    // Use requestAnimationFrame for smoother transitions instead of setTimeout
+    requestAnimationFrame(() => {
       console.log('Card transition executing - setting currentCard to:', newCard);
       setCurrentCard(newCard);
       currentCardRef.current = newCard; // Update ref immediately
       setCardKey(prev => prev + 1);
       console.log('Card transition completed, ref updated to:', currentCardRef.current);
-    }, delay);
+    });
   };
 
   const triggerHeartLossAnimation = () => {
@@ -340,8 +338,8 @@ export default function Game() {
 
     if (isGuessCorrect) {
       console.log('Correct guess - same player keeps turn');
-      // Small delay to let card flip sound play first
-      setTimeout(() => playCorrectSound(), 100);
+      // Reduced delay for faster feedback
+      setTimeout(() => playCorrectSound(), 50);
       // Delay only for CPU turns, no delay for human turns
       const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 0;
       setTimeout(() => {
@@ -350,8 +348,8 @@ export default function Game() {
       }, messageDelay);
     } else {
       console.log('Incorrect guess - advancing to next player');
-      // Small delay to let card flip sound play first (no life lost on Red/Black incorrect)
-      setTimeout(() => playIncorrectSound(), 100);
+      // Reduced delay for faster feedback (no life lost on Red/Black incorrect)
+      setTimeout(() => playIncorrectSound(), 50);
       setTurnOwnerIndex(currentPlayerIndex);
       const nextPlayerIndex = advanceToNextPlayer();
       console.log('Turn advancing from player', currentPlayerIndex, 'to player', nextPlayerIndex);
@@ -373,8 +371,8 @@ export default function Game() {
         setWinnerName(activePlayersArray[0].name);
         setGameState("GAME_OVER");
         setMessage(`Game Over! ${activePlayersArray[0].name} is the winner!`);
-        // Play game win sound with a small delay to let other sounds finish
-        setTimeout(() => playGameWinSound(), 200);
+        // Reduced delay for faster win celebration
+        setTimeout(() => playGameWinSound(), 100);
         return true;
     }
     return false;
@@ -414,7 +412,7 @@ export default function Game() {
     if (gameState === 'SHOWING_RESULT') {
         const timeoutId = setTimeout(() => {
             processTurnEnd();
-        }, 2500); 
+        }, 1500); // Reduced from 2500ms to 1500ms for faster gameplay
         return () => clearTimeout(timeoutId);
     }
   }, [gameState, processTurnEnd]);
@@ -502,11 +500,11 @@ export default function Game() {
       setMessage(reason);
       
       if (correct) {
-        // Small delay to let card flip sound play first
+        // Reduced delay for faster feedback
         setTimeout(() => {
           playCorrectSound();
           setTitleFeedback('correct');
-        }, 100);
+        }, 50);
         setGameState("PLAY_OR_PASS");
       } else {
         // For both incorrect guesses and same value ties, play sound with delay to sync with heart animation
@@ -737,6 +735,14 @@ export default function Game() {
     };
   }, [clearAITimeoutRef]);
 
+  // Reset AI play count when turn changes (hidden rule: max 2 plays per turn)
+  useEffect(() => {
+    console.log('Turn change detected, resetting AI play counts');
+    aiPlayers.forEach((aiPlayer) => {
+      aiPlayer.resetPlayCount();
+    });
+  }, [currentPlayerIndex, aiPlayers]);
+
   // Trigger AI decisions when game state changes
   useEffect(() => {
     console.log('AI trigger useEffect:', { gameState, currentPlayerIndex, aiThinking });
@@ -827,7 +833,7 @@ export default function Game() {
     setAiPlayers(new Map());
     setAiThinking(false);
     setCardJustChanged(false);
-    setTimeout(() => setIsLoading(false), 500);
+    setTimeout(() => setIsLoading(false), 200); // Reduced for faster restart
   }, [playButtonSound, clearAITimeoutRef]);
 
   const handleShowCredits = useCallback(() => {

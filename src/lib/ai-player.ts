@@ -45,6 +45,7 @@ const DIFFICULTY_MODIFIERS: Record<AIDifficulty, Partial<AIPersonality>> = {
 export class AIPlayer {
   private personality: AIPersonality;
   private difficulty: AIDifficulty;
+  private playCountThisTurn: number = 0; // Hidden limit: max 2 plays per turn
 
   constructor(difficulty: AIDifficulty = "medium") {
     this.difficulty = difficulty;
@@ -208,6 +209,12 @@ export class AIPlayer {
    * Decide whether to Play again or Pass
    */
   makePlayOrPassDecision(currentCard: Card, playerLives: number, totalPlayers: number, gameState?: GameState): AIDecision {
+    // Hidden rule: CPU can only play maximum 2 times per turn
+    if (this.playCountThisTurn >= 2) {
+      const delay = 800 + Math.random() * 1200;
+      return { choice: "Pass", delay, confidence: 0.8 };
+    }
+    
     let playProbability = this.personality.playAgainThreshold;
     const cardValue = currentCard.value;
     
@@ -305,6 +312,11 @@ export class AIPlayer {
 
     const choice = Math.random() < playProbability ? "Play" : "Pass";
     
+    // Track play count for hidden 2-play limit
+    if (choice === "Play") {
+      this.playCountThisTurn++;
+    }
+    
     // Quick decision - this is about risk management
     const delay = 800 + Math.random() * 1200; // 800-2000ms
     const confidence = Math.abs(playProbability - 0.5) * 2;
@@ -343,5 +355,12 @@ export class AIPlayer {
       ...DEFAULT_PERSONALITY,
       ...DIFFICULTY_MODIFIERS[difficulty],
     };
+  }
+
+  /**
+   * Reset play count when turn changes (hidden rule enforcement)
+   */
+  resetPlayCount(): void {
+    this.playCountThisTurn = 0;
   }
 } 
