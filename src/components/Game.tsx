@@ -47,7 +47,6 @@ export default function Game() {
   const [showRules, setShowRules] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [winnerName, setWinnerName] = useState<string>("");
-  const [isLandscape, setIsLandscape] = useState(false);
   const [aiPlayers, setAiPlayers] = useState<Map<string, AIPlayer>>(new Map());
   const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [aiTimeout, setAiTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -163,38 +162,7 @@ export default function Game() {
     }
   }, [currentPlayerIndex, players]);
 
-  // Handle orientation change for mobile devices
-  useEffect(() => {
-    // Only apply landscape restriction to mobile devices
-    if (!capabilities.isMobile) return;
 
-    const checkOrientation = () => {
-      // Check both screen orientation API and window dimensions
-      const isCurrentlyLandscape = 
-        (screen.orientation && Math.abs(screen.orientation.angle) === 90) ||
-        (window.innerWidth > window.innerHeight && window.innerWidth > 768);
-      
-      setIsLandscape(isCurrentlyLandscape);
-    };
-
-    // Initial check
-    checkOrientation();
-
-    // Listen for orientation changes
-    const handleOrientationChange = () => {
-      // Small delay to ensure dimensions are updated
-      setTimeout(checkOrientation, 100);
-    };
-
-    // Listen to both orientation and resize events
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
-
-    return () => {
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      window.removeEventListener('resize', handleOrientationChange);
-    };
-  }, [capabilities.isMobile]);
 
 
 
@@ -328,8 +296,8 @@ export default function Game() {
       console.log('Correct guess - same player keeps turn');
       // Small delay to let card flip sound play first
       setTimeout(() => playCorrectSound(), 100);
-      // Shorter delay for CPU turns, longer for human turns
-      const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+      // Delay only for CPU turns, no delay for human turns
+      const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 0;
       setTimeout(() => {
         setGameState("AWAITING_KEEP_OR_CHANGE");
         setMessage(`Correct! The card is the ${nextCard.rank} of ${nextCard.suit}. ${players[currentPlayerIndex].name}, keep it or change?`);
@@ -344,8 +312,8 @@ export default function Game() {
       console.log('Next player will be:', players[nextPlayerIndex]);
       setCurrentPlayerIndex(nextPlayerIndex);
       
-      // Shorter delay for CPU turns, longer for human turns
-      const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+      // Delay only for CPU turns, no delay for human turns
+      const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 0;
       setTimeout(() => {
         setGameState("AWAITING_KEEP_OR_CHANGE");
         setMessage(`Incorrect! It was the ${nextCard.rank} of ${nextCard.suit}. ${players[nextPlayerIndex].name}, you decide: keep or change?`);
@@ -408,9 +376,9 @@ export default function Game() {
   const handleKeepCard = useCallback(() => {
     playButtonSound();
     setCardJustChanged(false); // Reset flag since we're keeping the current card
-    // Shorter delay for CPU turns, longer for human turns
+    // Delay only for CPU turns, no delay for human turns
     const nextPlayerIndex = turnOwnerIndex !== null ? turnOwnerIndex : currentPlayerIndex;
-    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 0;
     setTimeout(() => {
       setGameState("AWAITING_HIGHER_LOWER");
       if (turnOwnerIndex !== null) {
@@ -431,9 +399,9 @@ export default function Game() {
     setCardJustChanged(true);
     smoothCardTransition(newCard);
     
-    // Shorter delay for CPU turns, longer for human turns
+    // Delay only for CPU turns, no delay for human turns
     const nextPlayerIndex = turnOwnerIndex !== null ? turnOwnerIndex : currentPlayerIndex;
-    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 0;
     setTimeout(() => {
       setGameState("AWAITING_HIGHER_LOWER");
 
@@ -482,8 +450,8 @@ export default function Game() {
     
     smoothCardTransition(newCard);
     
-    // Shorter delay for CPU turns, longer for human turns
-    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+    // Delay only for CPU turns, no delay for human turns
+    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 0;
     setTimeout(() => {
       setMessage(reason);
       
@@ -507,8 +475,8 @@ export default function Game() {
 
   const handlePlay = useCallback(() => {
     playButtonSound();
-    // Shorter delay for CPU turns, longer for human turns
-    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 800;
+    // Delay only for CPU turns, no delay for human turns
+    const messageDelay = players[currentPlayerIndex]?.isComputer ? 200 : 0;
     setTimeout(() => {
       setGameState("AWAITING_HIGHER_LOWER");
       setMessage(`Card is ${currentCard?.rank}. Higher or Lower?`);
@@ -519,8 +487,8 @@ export default function Game() {
     playButtonSound();
     const nextPlayerIndex = advanceToNextPlayer();
     setCurrentPlayerIndex(nextPlayerIndex);
-    // Shorter delay for CPU turns, longer for human turns
-    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 800;
+    // Delay only for CPU turns, no delay for human turns
+    const messageDelay = players[nextPlayerIndex]?.isComputer ? 200 : 0;
     setTimeout(() => {
       setGameState("AWAITING_HIGHER_LOWER");
       setMessage(`${players[nextPlayerIndex].name}, your turn. Higher or lower than ${currentCard?.rank}?`);
@@ -567,7 +535,7 @@ export default function Game() {
       }
       
       // Add delay for user to read the decision before executing
-      const displayDelay = 1500 + Math.random() * 1000; // 1.5-2.5 seconds to read decision
+      const displayDelay = 2000; // 2.0 seconds to read decision
       console.log(`AI decision display delay: ${displayDelay}ms`);
       
       const executeTimeout = setTimeout(() => {
@@ -1511,51 +1479,7 @@ export default function Game() {
         )}
       </AnimatePresence>
 
-      {/* Landscape Orientation Warning - Mobile Only */}
-      <AnimatePresence>
-        {capabilities.isMobile && isLandscape && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gray-800 rounded-2xl p-8 text-center max-w-sm mx-auto border border-yellow-500/50 shadow-2xl"
-            >
-              {/* Rotate Icon */}
-              <motion.div
-                animate={{ rotate: [0, -90, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="text-6xl mb-6"
-              >
-                📱
-              </motion.div>
-              
-              {/* Title */}
-              <h2 className="text-2xl font-bold text-yellow-400 mb-4 font-cinzel">
-                Rotate Your Device
-              </h2>
-              
-              {/* Message */}
-              <p className="text-gray-300 mb-6 leading-relaxed">
-                POP is designed for portrait mode. Please rotate your device to portrait orientation for the best gaming experience.
-              </p>
-              
-              {/* Instruction */}
-              <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50">
-                <div className="flex items-center justify-center gap-3 text-sm text-gray-400">
-                  <span className="text-xl">🔄</span>
-                  <span>Turn your device upright</span>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
     </main>
   );
 }

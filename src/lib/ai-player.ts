@@ -64,7 +64,7 @@ export class AIPlayer {
     }
 
     // Quick decision - color guessing is straightforward
-    const delay = 800 + Math.random() * 1200; // 800-2000ms (back to original)
+    const delay = 800 + Math.random() * 1200; // 800-2000ms
     const confidence = 0.5; // Always 50/50 for color
 
     return { choice, delay, confidence };
@@ -92,7 +92,7 @@ export class AIPlayer {
     const choice = Math.random() < keepProbability ? "Keep" : "Change";
     
     // Medium thinking time - considering card value
-    const delay = 1200 + Math.random() * 1800; // 1200-3000ms (back to original)
+    const delay = 800 + Math.random() * 1200; // 800-2000ms
     const confidence = Math.abs(keepProbability - 0.5) * 2; // 0-1 scale
 
     return { choice, delay, confidence };
@@ -133,16 +133,25 @@ export class AIPlayer {
     const choice = Math.random() < higherProbability ? "Higher" : "Lower";
     
     // Variable thinking time based on card difficulty
-    let baseDelay = 1500; // back to original
+    let baseDelay = 1000; // Default delay
     if (cardValue <= 3 || cardValue >= 12) {
       // Easy decisions - quick
-      baseDelay = 800; // back to original
+      baseDelay = 800;
     } else if (cardValue >= 6 && cardValue <= 9) {
       // Hard decisions - longer thinking
-      baseDelay = 2500; // back to original
+      baseDelay = 1500;
     }
     
-    const delay = baseDelay + Math.random() * 1500; // back to original
+    let randomDelay = 1000; // Default random range
+    if (cardValue <= 3 || cardValue >= 12) {
+      // Easy decisions - smaller random range
+      randomDelay = 400;
+    } else if (cardValue >= 6 && cardValue <= 9) {
+      // Hard decisions - larger random range
+      randomDelay = 1000;
+    }
+    
+    const delay = baseDelay + Math.random() * randomDelay;
     const confidence = Math.abs(higherProbability - 0.5) * 2;
 
     return { choice, delay, confidence };
@@ -188,7 +197,7 @@ export class AIPlayer {
     const choice = Math.random() < playProbability ? "Play" : "Pass";
     
     // Quick decision - this is about risk management
-    const delay = 1000 + Math.random() * 1500; // 1000-2500ms (back to original)
+    const delay = 800 + Math.random() * 1200; // 800-2000ms
     const confidence = Math.abs(playProbability - 0.5) * 2;
 
     return { choice, delay, confidence };
