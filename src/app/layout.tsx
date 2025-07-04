@@ -26,28 +26,30 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
+      <body className={`${inter.variable} ${cinzel.variable} font-sans`}>
+        {children}
         <script dangerouslySetInnerHTML={{
           __html: `
             // Set viewport height CSS custom property for mobile safari
-            function setViewportHeight() {
-              let vh = window.innerHeight * 0.01;
-              document.documentElement.style.setProperty('--vh', vh + 'px');
-              document.documentElement.style.setProperty('--dynamic-vh', vh + 'px');
-            }
-            
-            // Set initial value
-            setViewportHeight();
-            
-            // Update on resize
-            window.addEventListener('resize', setViewportHeight);
-            window.addEventListener('orientationchange', function() {
-              setTimeout(setViewportHeight, 100);
-            });
+            (function() {
+              function setViewportHeight() {
+                let vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', vh + 'px');
+                document.documentElement.style.setProperty('--dynamic-vh', vh + 'px');
+              }
+              
+              // Set initial value
+              setViewportHeight();
+              
+              // Update on resize
+              window.addEventListener('resize', setViewportHeight);
+              window.addEventListener('orientationchange', function() {
+                setTimeout(setViewportHeight, 100);
+              });
+            })();
           `
         }} />
-      </head>
-      <body className={`${inter.variable} ${cinzel.variable} font-sans`}>{children}</body>
+      </body>
     </html>
   );
 } 

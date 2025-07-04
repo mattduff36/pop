@@ -11,7 +11,7 @@ interface AudioPool {
   [key: string]: AudioInstance[];
 }
 
-export const useMobileAudioManager = (isMuted: boolean) => {
+export const useMobileAudioManager = (isMuted: boolean, enabled: boolean = true) => {
   const audioPoolRef = useRef<AudioPool>({});
   const capabilitiesRef = useRef(detectDeviceCapabilities());
   const settingsRef = useRef(getPerformanceSettings(capabilitiesRef.current));
@@ -67,6 +67,8 @@ export const useMobileAudioManager = (isMuted: boolean) => {
 
   // Preload audio with mobile-optimized strategy
   const preloadSound = useCallback(async (src: string, poolSize?: number, volume: number = 1) => {
+    if (!enabled) return;
+    
     const settings = settingsRef.current;
     const actualPoolSize = poolSize || settings.audioSettings.poolSize;
     
@@ -112,12 +114,12 @@ export const useMobileAudioManager = (isMuted: boolean) => {
       
       await Promise.all(promises);
     }
-  }, [createAudioInstance]);
+  }, [createAudioInstance, enabled]);
 
   // Play sound with mobile optimizations
   const playSound = useCallback((src: string) => {
-    if (isMuted) {
-      console.log('🔇 Sound muted:', src);
+    if (isMuted || !enabled) {
+      console.log('🔇 Sound muted or disabled:', src);
       return;
     }
 
@@ -190,7 +192,7 @@ export const useMobileAudioManager = (isMuted: boolean) => {
     availableInstance.audio.onended = () => {
       availableInstance!.isPlaying = false;
     };
-  }, [isMuted, createAudioInstance]);
+  }, [isMuted, createAudioInstance, enabled]);
 
   // Cleanup and memory management
   useEffect(() => {

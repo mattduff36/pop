@@ -97,8 +97,8 @@ export default function Game() {
   const viewport = useViewportSize();
 
   // Choose appropriate audio manager based on device capabilities (MUST be before any early returns)
-  const mobileAudio = useMobileAudioManager(isMuted);
-  const desktopAudio = useAudioManager(isMuted);
+  const mobileAudio = useMobileAudioManager(isMuted, capabilities.isMobile);
+  const desktopAudio = useAudioManager(isMuted, !capabilities.isMobile);
   const { playSound, preloadSound } = capabilities.isMobile ? mobileAudio : desktopAudio;
   const titleAnimationClass = useMemo(() => {
     if (titleFeedback === 'idle') return '';
