@@ -568,7 +568,6 @@ export default function Game() {
     
     const timeout = setTimeout(() => {
       console.log(`AI decision made: ${decision}, showing decision to user`);
-      setAiThinking(false);
       
       // Show the decision message if provided
       if (decisionMessage) {
@@ -583,6 +582,7 @@ export default function Game() {
         console.log(`AI executing decision: ${decision}`);
         aiTimeoutRef.current = null;
         setAiTimeout(null);
+        setAiThinking(false); // Only set to false after callback execution
         try {
           callback();
         } catch (error) {
