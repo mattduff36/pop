@@ -181,10 +181,8 @@ export default function Game() {
     });
     setAiPlayers(aiPlayerMap);
     
-    // Always start with the first human player
-    const startingPlayerIndex = players.findIndex(player => !player.isComputer);
-    // If no human players found, start with first player
-    const actualStartingIndex = startingPlayerIndex >= 0 ? startingPlayerIndex : 0;
+    // Randomly select starting player as per game rules
+    const actualStartingIndex = Math.floor(Math.random() * players.length);
     
     setCurrentPlayerIndex(actualStartingIndex);
     setGameStarted(true);
