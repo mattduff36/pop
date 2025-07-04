@@ -9,13 +9,13 @@ interface AudioPool {
   [key: string]: AudioInstance[];
 }
 
-const useAudioManager = (isMuted: boolean = false, enabled: boolean = true) => {
+const useAudioManager = (isMuted: boolean = false) => {
   const audioPoolRef = useRef<AudioPool>({});
   const preloadedRef = useRef<Set<string>>(new Set());
 
   // Preload and create audio pool for a sound
   const preloadSound = useCallback((soundUrl: string, poolSize: number = 3, volume: number = 1.0) => {
-    if (typeof window === 'undefined' || preloadedRef.current.has(soundUrl) || !enabled) {
+    if (typeof window === 'undefined' || preloadedRef.current.has(soundUrl)) {
       return;
     }
 
@@ -54,12 +54,12 @@ const useAudioManager = (isMuted: boolean = false, enabled: boolean = true) => {
     
     audioPoolRef.current[soundUrl] = audioPool;
     preloadedRef.current.add(soundUrl);
-  }, [enabled]);
+  }, []);
 
   // Play a sound from the pool
   const playSound = useCallback((soundUrl: string) => {
-    if (isMuted || !enabled) {
-      console.log('🔇 Desktop sound muted or disabled:', soundUrl);
+    if (isMuted) {
+      console.log('🔇 Desktop sound muted:', soundUrl);
       return;
     }
     
@@ -97,7 +97,7 @@ const useAudioManager = (isMuted: boolean = false, enabled: boolean = true) => {
     } catch (error) {
       console.error('Desktop sound playback error:', error);
     }
-  }, [isMuted, enabled]);
+  }, [isMuted]);
 
 
 

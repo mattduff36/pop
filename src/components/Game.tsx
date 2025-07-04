@@ -7,8 +7,7 @@ import { createDeck, shuffleDeck } from "@/lib/game";
 import GameSetup from "./GameSetup";
 import PlayerList from "./PlayerList";
 import { getCardImageSrc } from "@/lib/utils";
-import useAudioManager from "@/hooks/useAudioManager";
-import { useMobileAudioManager } from "@/hooks/useMobileAudioManager";
+import { useUnifiedAudioManager } from "@/hooks/useUnifiedAudioManager";
 import { detectDeviceCapabilities, getPerformanceSettings } from "@/lib/device-performance";
 import { useViewportSize } from "@/hooks/useAssetPreloader";
 import { AIPlayer } from "@/lib/ai-player";
@@ -96,10 +95,8 @@ export default function Game() {
   const settings = useMemo(() => getPerformanceSettings(capabilities), [capabilities]);
   const viewport = useViewportSize();
 
-  // Choose appropriate audio manager based on device capabilities (MUST be before any early returns)
-  const mobileAudio = useMobileAudioManager(isMuted, capabilities.isMobile);
-  const desktopAudio = useAudioManager(isMuted, !capabilities.isMobile);
-  const { playSound, preloadSound } = capabilities.isMobile ? mobileAudio : desktopAudio;
+  // Unified audio manager handles both mobile and desktop
+  const { playSound, preloadSound } = useUnifiedAudioManager(isMuted);
   const titleAnimationClass = useMemo(() => {
     if (titleFeedback === 'idle') return '';
     if (capabilities.shouldReduceEffects) {
@@ -127,6 +124,27 @@ export default function Game() {
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000); // Simulate loading time
     return () => clearTimeout(timer);
+  }, []);
+
+  // Set viewport height CSS custom property for mobile safari (client-side only)
+  useEffect(() => {
+    const setViewportHeight = () => {
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', vh + 'px');
+      document.documentElement.style.setProperty('--dynamic-vh', vh + 'px');
+    };
+    
+    setViewportHeight();
+    
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 100);
+    });
+
+    return () => {
+      window.removeEventListener('resize', setViewportHeight);
+      window.removeEventListener('orientationchange', setViewportHeight);
+    };
   }, []);
 
   // Preload sounds on component mount
