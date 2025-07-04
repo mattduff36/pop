@@ -1351,8 +1351,23 @@ export default function Game() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="text-center"
+                    className="text-center relative"
                   >
+                    {/* Close X button in top right corner */}
+                    <button
+                      onClick={() => {
+                        playButtonSound();
+                        setIsSettingsOpen(false);
+                        setShowRules(false);
+                      }}
+                      className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-all transform hover:scale-110"
+                      title="Close Settings"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    
                     <h2 className="text-2xl font-bold mb-8 text-yellow-400 font-cinzel">Settings</h2>
                     
                     {/* Settings Grid */}
@@ -1448,18 +1463,6 @@ export default function Game() {
                         </button>
                       </div>
                     </div>
-
-                    {/* Close Button */}
-                    <button
-                      onClick={() => {
-                        playButtonSound();
-                        setIsSettingsOpen(false);
-                        setShowRules(false);
-                      }}
-                      className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg border border-gray-500"
-                    >
-                      Close Settings
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
