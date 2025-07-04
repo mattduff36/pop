@@ -608,7 +608,14 @@ export default function Game() {
     console.log('aiPlayer found:', !!aiPlayer);
     
     if (aiPlayer) {
-      const decision = aiPlayer.makeKeepOrChangeDecision(cardToUse);
+      // Create game state for AI decision making
+      const gameState = {
+        players,
+        currentPlayerIndex,
+        remainingCards: deck.length
+      };
+      
+      const decision = aiPlayer.makeKeepOrChangeDecision(cardToUse, gameState);
       const thinkingMessage = `${decisionMaker.name} is thinking... ${aiPlayer.getThinkingMessage("keep")}`;
       console.log('AI decision:', decision);
       setMessage(thinkingMessage);
@@ -654,7 +661,14 @@ export default function Game() {
     const aiPlayer = aiPlayers.get(currentPlayer.id);
     
     if (aiPlayer) {
-      const decision = aiPlayer.makePlayOrPassDecision(cardToUse, currentPlayer.lives, players.length);
+      // Create game state for AI decision making
+      const gameState = {
+        players,
+        currentPlayerIndex,
+        remainingCards: deck.length
+      };
+      
+      const decision = aiPlayer.makePlayOrPassDecision(cardToUse, currentPlayer.lives, players.length, gameState);
       const thinkingMessage = `${currentPlayer.name} is thinking... ${aiPlayer.getThinkingMessage("play")}`;
       setMessage(thinkingMessage);
       
