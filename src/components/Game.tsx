@@ -29,17 +29,45 @@ export default function Game() {
   const [discardPile, setDiscardPile] = useState<Card[]>([]);
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [cardKey, setCardKey] = useState<number>(0);
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [heartPopAnimation, setHeartPopAnimation] = useState<{
     show: boolean;
     playerIndex: number;
     startPosition: { x: number; y: number };
   } | null>(null);
-  const [turnOwnerIndex, setTurnOwnerIndex] = useState<number | null>(null);
-  const [gameState, setGameState] = useState<GameState>("SETUP");
+  // Consolidated game flow state to reduce re-renders
+  const [gameFlow, setGameFlow] = useState({
+    turnOwnerIndex: null as number | null,
+    gameState: "SETUP" as GameState,
+    currentPlayerIndex: 0,
+    message: "Welcome to POP! Setup the game to start."
+  });
+  
+  // Destructure for easier access
+  const { gameState, message, currentPlayerIndex, turnOwnerIndex } = gameFlow;
+  
+  // Helper functions for updating gameFlow state
+  const updateGameFlow = useCallback((updates: Partial<typeof gameFlow>) => {
+    setGameFlow(prev => ({ ...prev, ...updates }));
+  }, []);
+  
+  const setGameState = useCallback((newState: GameState) => {
+    updateGameFlow({ gameState: newState });
+  }, [updateGameFlow]);
+  
+  const setMessage = useCallback((newMessage: string) => {
+    updateGameFlow({ message: newMessage });
+  }, [updateGameFlow]);
+  
+  const setCurrentPlayerIndex = useCallback((newIndex: number) => {
+    updateGameFlow({ currentPlayerIndex: newIndex });
+  }, [updateGameFlow]);
+  
+  const setTurnOwnerIndex = useCallback((newIndex: number | null) => {
+    updateGameFlow({ turnOwnerIndex: newIndex });
+  }, [updateGameFlow]);
+  
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState("Welcome to POP! Setup the game to start.");
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [titleFeedback, setTitleFeedback] = useState<'correct' | 'incorrect' | 'idle'>('idle');
   const [failureReason, setFailureReason] = useState<'INCORRECT_GUESS' | 'SAME_VALUE_TIE' | null>(null);
@@ -184,10 +212,12 @@ export default function Game() {
     // Randomly select starting player as per game rules
     const actualStartingIndex = Math.floor(Math.random() * players.length);
     
-    setCurrentPlayerIndex(actualStartingIndex);
+    updateGameFlow({
+      currentPlayerIndex: actualStartingIndex,
+      gameState: "AWAITING_COLOUR_GUESS",
+      message: `${players[actualStartingIndex].name}, is the first card Red or Black?`
+    });
     setGameStarted(true);
-    setGameState("AWAITING_COLOUR_GUESS");
-    setMessage(`${players[actualStartingIndex].name}, is the first card Red or Black?`);
   }, [playGameStartSound, initialDeck]);
 
   const handleInstallClick = useCallback(() => {
