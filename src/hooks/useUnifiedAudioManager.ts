@@ -18,6 +18,7 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
   const contextRef = useRef<AudioContext | null>(null);
   const isInitializedRef = useRef(false);
   const preloadedRef = useRef<Set<string>>(new Set());
+  const contextMonitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Initialize Web Audio Context for mobile
   const initializeAudioContext = useCallback(() => {
@@ -30,8 +31,37 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
         isInitializedRef.current = true;
         console.log('🔊 Audio context initialized:', contextRef.current.state);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Audio context initialization failed:', error);
+    }
+  }, []);
+
+  // Enhanced context maintenance for iOS during CPU turns
+  const maintainAudioContext = useCallback(() => {
+    if (!capabilitiesRef.current.isMobile || !contextRef.current) return;
+    
+    if (contextRef.current.state === 'suspended') {
+      console.log('🔊 Proactively resuming suspended audio context');
+      contextRef.current.resume()
+        .then(() => console.log('✅ Audio context resumed successfully'))
+        .catch((error: any) => console.warn('❌ Failed to resume audio context:', error));
+    }
+  }, []);
+
+  // Start context monitoring during CPU sequences
+  const startContextMonitoring = useCallback(() => {
+    if (!capabilitiesRef.current.isMobile || contextMonitorIntervalRef.current) return;
+    
+    console.log('🔊 Starting audio context monitoring for CPU turns');
+    contextMonitorIntervalRef.current = setInterval(maintainAudioContext, 1500);
+  }, [maintainAudioContext]);
+
+  // Stop context monitoring
+  const stopContextMonitoring = useCallback(() => {
+    if (contextMonitorIntervalRef.current) {
+      console.log('🔊 Stopping audio context monitoring');
+      clearInterval(contextMonitorIntervalRef.current);
+      contextMonitorIntervalRef.current = null;
     }
   }, []);
 
@@ -106,18 +136,18 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
       }
     } else {
       // Desktop: parallel loading
-      const promises = Array.from({ length: actualPoolSize }, () => {
-        const audio = createAudioInstance(src, volume);
-        return new Promise<AudioInstance>((resolve) => {
-          const instance = {
-            audio,
-            isPlaying: false,
-            lastUsed: 0
-          };
-          audioPoolRef.current[src].push(instance);
-          resolve(instance);
+              const promises = Array.from({ length: actualPoolSize }, () => {
+          const audio = createAudioInstance(src, volume);
+          return new Promise<AudioInstance>((resolve) => {
+            const instance: AudioInstance = {
+              audio,
+              isPlaying: false,
+              lastUsed: 0
+            };
+            audioPoolRef.current[src].push(instance);
+            resolve(instance);
+          });
         });
-      });
       
       await Promise.all(promises);
     }
@@ -125,7 +155,7 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
     preloadedRef.current.add(src);
   }, [createAudioInstance]);
 
-  // Play sound with device optimizations
+  // Enhanced play sound with aggressive iOS context management
   const playSound = useCallback((src: string) => {
     if (isMuted) {
       console.log('🔇 Sound muted:', src);
@@ -134,63 +164,93 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
 
     console.log(`🔊 Playing sound (${capabilitiesRef.current.isMobile ? 'mobile' : 'desktop'}):`, src);
 
-    // Mobile audio context handling
-    if (capabilitiesRef.current.isMobile && contextRef.current?.state === 'suspended') {
-      contextRef.current.resume().catch((error) => {
-        console.warn('Failed to resume audio context:', error);
-      });
+    // Aggressive iOS audio context handling
+    if (capabilitiesRef.current.isMobile && contextRef.current) {
+      const currentState = contextRef.current.state;
+      console.log(`🔊 Audio context state: ${currentState}`);
+      
+      if (currentState === 'suspended') {
+        console.log('🔊 Resuming suspended audio context before playback');
+        contextRef.current.resume().then(() => {
+          console.log('✅ Audio context resumed, proceeding with playback');
+          // Retry playback after context is resumed
+          setTimeout(() => playSound(src), 100);
+        }).catch((error) => {
+          console.warn('❌ Failed to resume audio context:', error);
+          // Continue with playback attempt even if resume fails
+          proceedWithPlayback();
+        });
+        return;
+      }
     }
 
-    const pool = audioPoolRef.current[src];
-    if (!pool || pool.length === 0) {
-      // Fallback: create a single instance
-      const audio = createAudioInstance(src);
+    proceedWithPlayback();
+
+    function proceedWithPlayback() {
+      const pool = audioPoolRef.current[src];
+      if (!pool || pool.length === 0) {
+        // Fallback: create a single instance
+        const audio = createAudioInstance(src);
+        attemptPlayback(audio);
+        return;
+      }
+
+      // Find available instance or use least recently used
+      let availableInstance = pool.find(instance => !instance.isPlaying);
+      
+               if (!availableInstance) {
+           availableInstance = pool.reduce((oldest: AudioInstance, current: AudioInstance) => 
+             current.lastUsed < oldest.lastUsed ? current : oldest
+           );
+        
+        availableInstance.audio.pause();
+        availableInstance.audio.currentTime = 0;
+      }
+
+      availableInstance.isPlaying = true;
+      availableInstance.lastUsed = Date.now();
+
+      attemptPlayback(availableInstance.audio, () => {
+        availableInstance!.isPlaying = false;
+      });
+
+      // Reset playing state when audio ends
+      availableInstance.audio.onended = () => {
+        availableInstance!.isPlaying = false;
+      };
+    }
+
+    function attemptPlayback(audio: HTMLAudioElement, onFailure?: () => void) {
       const playPromise = audio.play();
       
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Silently handle play failures
-        });
+        playPromise
+          .then(() => {
+            console.log('✅ Sound played successfully:', src);
+          })
+          .catch((error) => {
+                         console.warn('❌ Audio playback failed:', error);
+             if (onFailure) onFailure();
+             
+             // For iOS, try creating a fresh instance as fallback
+             if (capabilitiesRef.current.isMobile && (error as any).name === 'NotAllowedError') {
+              console.log('🔊 Creating fallback audio instance for iOS');
+              const fallbackAudio = new Audio(src);
+              fallbackAudio.volume = audio.volume;
+              fallbackAudio.play().catch(() => {
+                // Silent fail - audio context likely needs user interaction
+              });
+            }
+          });
       }
-      return;
     }
-
-    // Find available instance or use least recently used
-    let availableInstance = pool.find(instance => !instance.isPlaying);
-    
-    if (!availableInstance) {
-      availableInstance = pool.reduce((oldest, current) => 
-        current.lastUsed < oldest.lastUsed ? current : oldest
-      );
-      
-      availableInstance.audio.pause();
-      availableInstance.audio.currentTime = 0;
-    }
-
-    availableInstance.isPlaying = true;
-    availableInstance.lastUsed = Date.now();
-
-    const playPromise = availableInstance.audio.play();
-    
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log('✅ Sound played successfully:', src);
-        })
-        .catch(() => {
-          availableInstance!.isPlaying = false;
-        });
-    }
-
-    // Reset playing state when audio ends
-    availableInstance.audio.onended = () => {
-      availableInstance!.isPlaying = false;
-    };
   }, [isMuted, createAudioInstance]);
 
   // Cleanup
   useEffect(() => {
     return () => {
+      stopContextMonitoring();
+      
       Object.values(audioPoolRef.current).forEach(pool => {
         pool.forEach(instance => {
           instance.audio.pause();
@@ -206,7 +266,7 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
         contextRef.current = null;
       }
     };
-  }, []);
+  }, [stopContextMonitoring]);
 
   // Initialize audio context on first user interaction (mobile)
   useEffect(() => {
@@ -234,7 +294,10 @@ export const useUnifiedAudioManager = (isMuted: boolean) => {
   return {
     preloadSound,
     playSound,
+    startContextMonitoring,
+    stopContextMonitoring,
     cleanup: () => {
+      stopContextMonitoring();
       Object.values(audioPoolRef.current).forEach(pool => {
         pool.forEach(instance => {
           instance.audio.pause();

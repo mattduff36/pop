@@ -132,8 +132,8 @@ export const getPerformanceSettings = (capabilities: DeviceCapabilities): Perfor
         hearts: capabilities.shouldReduceEffects ? 2 : 4
       },
       audioSettings: {
-        poolSize: 3, // iOS can handle more audio instances
-        preloadAll: false // iOS handles on-demand loading better
+        poolSize: 4, // Increased for better availability during CPU turns
+        preloadAll: true // Enable preloading for better performance during long CPU sequences
       },
       renderSettings: {
         willChange: true,

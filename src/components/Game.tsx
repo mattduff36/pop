@@ -96,7 +96,7 @@ export default function Game() {
   const viewport = useViewportSize();
 
   // Unified audio manager handles both mobile and desktop
-  const { playSound, preloadSound } = useUnifiedAudioManager(isMuted);
+  const { playSound, preloadSound, startContextMonitoring, stopContextMonitoring } = useUnifiedAudioManager(isMuted);
   const titleAnimationClass = useMemo(() => {
     if (titleFeedback === 'idle') return '';
     if (capabilities.shouldReduceEffects) {
@@ -558,13 +558,19 @@ export default function Game() {
       clearTimeout(aiTimeoutRef.current);
       aiTimeoutRef.current = null;
       setAiTimeout(null);
+      
+      // Stop context monitoring when AI turn is interrupted
+      stopContextMonitoring();
     }
-  }, []);
+  }, [stopContextMonitoring]);
 
   const handleAIDecision = useCallback((decision: string, delay: number, callback: () => void, decisionMessage?: string) => {
     console.log(`AI Decision: ${decision}, Delay: ${delay}ms`);
     clearAITimeoutRef();
     setAiThinking(true);
+    
+    // Start audio context monitoring for iOS during CPU turns
+    startContextMonitoring();
     
     const timeout = setTimeout(() => {
       console.log(`AI decision made: ${decision}, showing decision to user`);
@@ -583,6 +589,10 @@ export default function Game() {
         aiTimeoutRef.current = null;
         setAiTimeout(null);
         setAiThinking(false); // Only set to false after callback execution
+        
+        // Stop context monitoring when CPU turn is complete
+        stopContextMonitoring();
+        
         try {
           callback();
         } catch (error) {
@@ -597,7 +607,7 @@ export default function Game() {
     console.log('Setting AI timeout:', timeout);
     aiTimeoutRef.current = timeout;
     setAiTimeout(timeout);
-  }, [clearAITimeoutRef]);
+  }, [clearAITimeoutRef, startContextMonitoring, stopContextMonitoring]);
 
   const processAIColorGuess = useCallback(() => {
     const currentPlayer = players[currentPlayerIndex];
@@ -808,6 +818,7 @@ export default function Game() {
   const handlePlayAgain = useCallback(() => {
     playButtonSound();
     clearAITimeoutRef();
+    stopContextMonitoring(); // Ensure context monitoring is stopped when restarting
     setIsLoading(true);
     setGameStarted(false);
     setGameState("SETUP");
@@ -828,7 +839,7 @@ export default function Game() {
     setAiThinking(false);
     setCardJustChanged(false);
     setTimeout(() => setIsLoading(false), 200); // Reduced for faster restart
-  }, [playButtonSound, clearAITimeoutRef]);
+  }, [playButtonSound, clearAITimeoutRef, stopContextMonitoring]);
 
   const handleShowCredits = useCallback(() => {
     playButtonSound();
